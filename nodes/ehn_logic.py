@@ -1,10 +1,18 @@
 from .ehn_utils import any_type
 
-class EHN_AnySwitch:
+class EHN_InputToNumber:
     @classmethod
-    def INPUT_TYPES(s): return {"required": {"condition": ("BOOLEAN", {"default": True}), "on_true": (any_type,), "on_false": (any_type,)}}
-    RETURN_TYPES = (any_type,); FUNCTION = "switch"; CATEGORY = "EaselHub/Logic"
-    def switch(self, condition, on_true, on_false): return (on_true if condition else on_false,)
+    def INPUT_TYPES(s): return {"required": {"input_value": (any_type, {"default": 0})}}
+    RETURN_TYPES = ("INT", "FLOAT")
+    RETURN_NAMES = ("int_value", "float_value")
+    FUNCTION = "cast"
+    CATEGORY = "EaselHub/Logic"
+    def cast(self, input_value):
+        try:
+            val = float(input_value)
+        except:
+            val = 0.0
+        return (int(val), float(val))
 
 class EHN_BinaryMath:
     @classmethod
@@ -51,3 +59,9 @@ class EHN_SimpleMath:
             r = eval(expression, {"__builtins__":{}}, {**d, "abs":abs,"min":min,"max":max,"int":int,"float":float,"pow":pow,"math":__import__("math")})
             return (int(r), float(r), bool(r))
         except: return (0, 0.0, False)
+
+class EHN_ExecutionOrder:
+    @classmethod
+    def INPUT_TYPES(s): return {"required": {"signal": (any_type,), "value": (any_type,)}}
+    RETURN_TYPES = (any_type, any_type); RETURN_NAMES = ("signal", "value"); FUNCTION = "execute"; CATEGORY = "EaselHub/Logic"
+    def execute(self, signal, value): return (signal, value)
