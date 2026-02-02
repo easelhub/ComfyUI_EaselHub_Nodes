@@ -13,9 +13,33 @@ class EHN_BinaryMath:
     def do(self, operation, a, b):
         try: a, b = float(a), float(b)
         except: a, b = 0.0, 0.0
+        
         op = operation.split("(")[0].strip()
-        r = {"min":min(a,b),"max":max(a,b),"a + b":a+b,"a - b":a-b,"a * b":a*b,"a / b":a/b if b else 0,"a // b":a//b if b else 0,"a % b":a%b if b else 0,"a ** b":a**b,"a > b":a>b,"a < b":a<b,"a >= b":a>=b,"a <= b":a<=b,"a == b":a==b,"a != b":a!=b}.get(op, 0)
-        return (int(r), bool(r), float(r))
+        r = 0
+        try:
+            if op == "min": r = min(a, b)
+            elif op == "max": r = max(a, b)
+            elif op == "a + b": r = a + b
+            elif op == "a - b": r = a - b
+            elif op == "a * b": r = a * b
+            elif op == "a / b": r = a / b if b else 0
+            elif op == "a // b": r = a // b if b else 0
+            elif op == "a % b": r = a % b if b else 0
+            elif op == "a ** b": r = a ** b
+            elif op == "a > b": r = a > b
+            elif op == "a < b": r = a < b
+            elif op == "a >= b": r = a >= b
+            elif op == "a <= b": r = a <= b
+            elif op == "a == b": r = a == b
+            elif op == "a != b": r = a != b
+        except: r = 0
+
+        # Fix return order to match RETURN_TYPES ("BOOLEAN", "INT", "FLOAT")
+        # and handle potential overflow during conversion
+        try:
+            return (bool(r), int(r), float(r))
+        except:
+            return (False, 0, 0.0)
 
 class EHN_SimpleMath:
     @classmethod

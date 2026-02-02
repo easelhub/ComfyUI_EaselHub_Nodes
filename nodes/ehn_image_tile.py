@@ -21,7 +21,10 @@ class EHN_ImageSplitTiles:
             for c in range(cols):
                 y, x = r*stride, c*stride
                 tiles.append(img_p[:, :, y:y+tile_size, x:x+tile_size])
-        out = torch.stack(tiles, dim=0).permute(1,0,2,3,4).reshape(-1, c, tile_size, tile_size)
+        
+        stacked = torch.stack(tiles, dim=0).permute(1,0,2,3,4)
+        out = stacked.reshape(-1, stacked.shape[2], tile_size, tile_size)
+        
         return (out.permute(0,2,3,1), {"orig_w":w, "orig_h":h, "tile_size":tile_size, "overlap":overlap, "rows":rows, "cols":cols, "batch":b})
 
 class EHN_ImageMergeTiles:

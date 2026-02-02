@@ -1,5 +1,4 @@
 import torch, comfy.model_management as mm
-from unittest.mock import patch
 from comfy.ldm.flux.layers import timestep_embedding, apply_mod
 
 TC_CFG = {
@@ -66,7 +65,6 @@ class EHN_TeaCache:
         fn = flux_fw if "flux" in model_type else None 
         if not fn: return (model,) 
 
-        patcher = patch.multiple(dm, forward_orig=fn.__get__(dm, dm.__class__))
         def wrap(f, kw):
             t, c, o = kw["timestep"], kw["c"], kw["c"]["transformer_options"]
             pct = 0.5
@@ -76,6 +74,8 @@ class EHN_TeaCache:
             o["teacache_opts"]["en"] = (cfg["r"][0] <= pct <= cfg["r"][1])
             if pct<=0.01 or pct>=0.99: 
                 if hasattr(dm, "tc_logic"): delattr(dm, "tc_logic")
-            with patcher: return f(kw["input"], t, **c)
+            
+            return fn(dm, kw["input"], timesteps=t, **c)
+            
         nm.set_model_unet_function_wrapper(wrap)
         return (nm,)

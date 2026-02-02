@@ -18,7 +18,17 @@ class EHN_FreeVRAM:
     def INPUT_TYPES(s): return {"required": {"mode":(["Soft","Hard"],)}, "optional": {"any_input":(any_type,)}}
     RETURN_TYPES = (any_type,); FUNCTION = "run"; CATEGORY = "EaselHub/Utils"; OUTPUT_NODE = True
     def run(self, mode, any_input=None):
-        gc.collect(); torch.cuda.empty_cache(); torch.cuda.ipc_collect()
+        # Try to clean TeaCache artifacts
+        try:
+            import gc
+            for obj in gc.get_objects():
+                if hasattr(obj, "tc_logic"): delattr(obj, "tc_logic")
+        except: pass
+
+        gc.collect(); torch.cuda.empty_cache()
+        try: torch.cuda.ipc_collect()
+        except: pass
+        
         if mode=="Hard": comfy.model_management.unload_all_models()
         comfy.model_management.soft_empty_cache()
         return (any_input,)
