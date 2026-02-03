@@ -9,6 +9,7 @@ class EHN_ImageSideCalc:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"image":("IMAGE",), "side":(["Longest","Shortest"],)}}
     RETURN_TYPES = ("INT","INT","INT"); RETURN_NAMES = ("Side", "Width", "Height"); FUNCTION = "calc"; CATEGORY = "EaselHub/Utils"
+    DESCRIPTION = "Calculates the width, height, or specific side length of an image."
     def calc(self, image, side):
         h, w = image.shape[1:3]
         return ({"Longest":max(h,w)}.get(side, min(h,w)), w, h)
@@ -17,6 +18,7 @@ class EHN_FreeVRAM:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"mode":(["Soft","Hard"],)}, "optional": {"any_input":(any_type,)}}
     RETURN_TYPES = (any_type,); FUNCTION = "run"; CATEGORY = "EaselHub/Utils"; OUTPUT_NODE = True
+    DESCRIPTION = "Forces VRAM garbage collection. Connect to any workflow point to clean up memory."
     def run(self, mode, any_input=None):
         # Try to clean TeaCache artifacts
         try:

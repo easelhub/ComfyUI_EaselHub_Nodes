@@ -10,6 +10,7 @@ class EHN_LoadImagesFromDir:
     OUTPUT_IS_LIST = (True, True, True, True, True, True)
     FUNCTION = "load"
     CATEGORY = "EaselHub/IO"
+    DESCRIPTION = "Batch loads images from a directory with filtering and recursion support."
 
     @classmethod
     def IS_CHANGED(s, directory, recursive, filter_filename, **kwargs):

@@ -17,6 +17,7 @@ class EHN_ImageCompare:
     FUNCTION = 'compare'
     OUTPUT_NODE = True
     CATEGORY = 'EaselHub/Image'
+    DESCRIPTION = "Side-by-side comparison of two images in the UI."
 
     def compare(self, image_a, image_b):
         res = []

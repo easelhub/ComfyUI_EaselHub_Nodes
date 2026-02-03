@@ -4,6 +4,7 @@ class EHN_Math:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"expression": ("STRING", {"default": "a + b"})}, "optional": {"a": (any_type,), "b": (any_type,), "c": (any_type,)}}
     RETURN_TYPES = ("BOOLEAN", "INT", "FLOAT"); FUNCTION = "calc"; CATEGORY = "EaselHub/Logic"
+    DESCRIPTION = "Evaluates a math expression using variables a, b, c."
     def calc(self, expression, a=0, b=0, c=0):
         try:
             # Safely cast inputs to float for calculation if possible
@@ -26,4 +27,5 @@ class EHN_ExecutionOrder:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"signal": (any_type,), "value": (any_type,)}}
     RETURN_TYPES = (any_type, any_type); RETURN_NAMES = ("signal", "value"); FUNCTION = "execute"; CATEGORY = "EaselHub/Logic"
+    DESCRIPTION = "Forces the 'signal' input to be evaluated before passing 'value' through."
     def execute(self, signal, value): return (signal, value)

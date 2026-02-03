@@ -55,6 +55,7 @@ class EHN_TeaCache:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"model":("MODEL",), "model_type":(list(TC_CFG.keys()),), "efficiency_factor":("FLOAT",{"default":1.0})}}
     RETURN_TYPES = ("MODEL",); FUNCTION = "apply"; CATEGORY = "EaselHub/Video"
+    DESCRIPTION = "Accelerates generation for Flux/Hunyuan/LTX/Wan models using TeaCache. Experimental."
     def apply(self, model, model_type, efficiency_factor):
         cfg = TC_CFG.get(model_type, TC_CFG["flux"])
         nm = model.clone()

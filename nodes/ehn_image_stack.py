@@ -24,6 +24,7 @@ class EHN_ImageStack:
     RETURN_NAMES = ("Image", "Mask", "Width", "Height")
     FUNCTION = "execute_stack"
     CATEGORY = "EaselHub/Image"
+    DESCRIPTION = "Stacks multiple images into a grid, strip, or column with alignment and resizing options."
 
     def execute_stack(self, image_1, layout_mode, max_columns, resize_behavior, resize_value, alignment, gap, border_width, fill_color, fill_holes, mask_blur, mask_1=None, **kwargs):
         up = lambda x: x[0] if isinstance(x, list) and x else x

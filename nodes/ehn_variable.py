@@ -9,6 +9,7 @@ class EHN_SetVariable:
     FUNCTION = "set"
     CATEGORY = "EaselHub/Logic"
     OUTPUT_NODE = True
+    DESCRIPTION = "Sets a global variable that can be retrieved anywhere in the workflow."
     def set(self, input_data, var_name, unique_id=None):
         name = var_name.strip()
         G_CACHE[name] = input_data
@@ -29,6 +30,7 @@ class EHN_GetVariable:
     RETURN_NAMES = ("data",)
     FUNCTION = "get"
     CATEGORY = "EaselHub/Logic"
+    DESCRIPTION = "Retrieves a global variable set by EHN_SetVariable."
     def get(self, var_name):
         name = var_name.strip()
         if name not in G_CACHE:

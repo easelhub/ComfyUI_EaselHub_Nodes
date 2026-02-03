@@ -25,6 +25,7 @@ class EHN_ImageResize:
     RETURN_NAMES = ("image", "mask", "width", "height")
     FUNCTION = "execute"
     CATEGORY = "EaselHub/Image"
+    DESCRIPTION = "Resize images with various methods (Stretch, Crop, Pad, etc.) and interpolation (including Lanczos)."
 
     def execute(self, image, width, height, target_mp, interpolation, method, condition, multiple_of, fill_holes, mask_blur, crop_pad_pos="center", mask=None):
         b, h, w, c = image.shape

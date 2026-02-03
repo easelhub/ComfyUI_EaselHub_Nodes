@@ -4,6 +4,7 @@ class EHN_MaskFillHoles:
     @classmethod
     def INPUT_TYPES(s): return {"required": {"mask": ("MASK",),"mask_blur": ("INT", {"default": 0}),  "fill_holes": ("BOOLEAN", {"default": True}), "invert_mask": ("BOOLEAN", {"default": False})}}
     RETURN_TYPES = ("MASK",); FUNCTION = "fill"; CATEGORY = "EaselHub/Mask"
+    DESCRIPTION = "Fills holes in masks, blurs edges, or inverts the mask."
     def fill(self, mask, fill_holes, mask_blur, invert_mask):
         try: from scipy.ndimage import binary_fill_holes
         except: return (mask,)

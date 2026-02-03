@@ -6,6 +6,7 @@ class EHN_PromptList:
     def INPUT_TYPES(s): return {"required": {"selection_mode": (["Concatenate All", "Pick Random One"],)}, "optional": {"incoming_list": (any_type,), "load_from_file": ("STRING", {}), "split_multiline": ("BOOLEAN", {"default": False}), "text": ("STRING", {"multiline": True, "dynamicPrompts": True})}}
     RETURN_TYPES = ("STRING", "STRING", "INT"); RETURN_NAMES = ("List", "String", "Count"); OUTPUT_IS_LIST = (True, False, False)
     FUNCTION = "run"; CATEGORY = "EaselHub/Logic"
+    DESCRIPTION = "Mixes prompts from lists, files, or text blocks. Can pick random lines or concatenate all."
     
     @classmethod
     def IS_CHANGED(s, selection_mode, **kwargs): return float("nan") if "Pick" in selection_mode else ""
