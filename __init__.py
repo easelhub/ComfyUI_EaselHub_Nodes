@@ -1,5 +1,5 @@
 from .nodes.ehn_variable import EHN_SetVariable, EHN_GetVariable
-from .nodes.ehn_logic import EHN_InputToNumber, EHN_BinaryMath, EHN_SimpleMath, EHN_ExecutionOrder
+from .nodes.ehn_logic import EHN_Math, EHN_ExecutionOrder
 from .nodes.ehn_prompt import EHN_PromptList
 from .nodes.ehn_load_images import EHN_LoadImagesFromDir
 from .nodes.ehn_image_resize import EHN_ImageResize
@@ -20,9 +20,7 @@ NODE_CLASS_MAPPINGS = {
     "EHN_CustomLLM": EHN_CustomLLM,
     "EHN_SetVariable": EHN_SetVariable,
     "EHN_GetVariable": EHN_GetVariable,
-    "EHN_InputToNumber": EHN_InputToNumber,
-    "EHN_BinaryMath": EHN_BinaryMath,
-    "EHN_SimpleMath": EHN_SimpleMath,
+    "EHN_Math": EHN_Math,
     "EHN_ExecutionOrder": EHN_ExecutionOrder,
     "EHN_PromptList": EHN_PromptList,
     "EHN_LoadImagesFromDir": EHN_LoadImagesFromDir,
@@ -46,9 +44,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_CustomLLM":       "🛠️ EHN LLM Prompt Gen (Custom/Local)",
     "EHN_SetVariable":     "📡 EHN Set Global Var",
     "EHN_GetVariable":     "📶 EHN Get Global Var",
-    "EHN_InputToNumber":   "🔢 EHN Cast to Number",
-    "EHN_BinaryMath":      "🧮 EHN Math Operations",
-    "EHN_SimpleMath":      "📐 EHN Expression Math",
+    "EHN_Math":            "🧮 EHN Math Expression",
     "EHN_ExecutionOrder":  "🚦 EHN Execution Order Control",
     "EHN_PromptList":      "📝 EHN Prompt Mixer",
     "EHN_LoadImagesFromDir": "📂 EHN Batch Image Loader",

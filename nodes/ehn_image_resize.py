@@ -1,4 +1,5 @@
 import torch, torch.nn.functional as F, math
+import comfy.utils
 from .ehn_utils import fill_mask_holes
 
 class EHN_ImageResize:
@@ -9,7 +10,7 @@ class EHN_ImageResize:
                 "image": ("IMAGE",),
                 "width": ("INT", {"default": 0, "max": 16384}),
                 "height": ("INT", {"default": 0, "max": 16384}),
-                "interpolation": (["nearest", "bilinear", "bicubic", "area"], {"default": "bicubic"}),
+                "interpolation": (["nearest", "bilinear", "bicubic", "area", "lanczos"], {"default": "bicubic"}),
                 "method": (["stretch", "keep proportion", "fill / crop", "pad (letterbox)", "scale to Target MP (Maintain Ratio)"], {"default": "stretch"}),
                 "crop_pad_pos": (["center", "top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"], {"default": "center"}),
                 "condition": (["always", "downscale only", "upscale only"], {"default": "always"}),
@@ -54,7 +55,12 @@ class EHN_ImageResize:
         if mask is None: mask = torch.zeros((b, h, w), device=image.device)
         elif mask.dim() == 2: mask = mask.unsqueeze(0).repeat(b, 1, 1)
 
-        img_res = F.interpolate(image.permute(0, 3, 1, 2), size=(rh, rw), mode=interpolation)
+        if interpolation == "lanczos":
+            # common_upscale returns BHWC, we need BCHW for subsequent operations
+            img_res = comfy.utils.common_upscale(image.movedim(-1,1), rw, rh, "lanczos", "disabled").movedim(1,-1).permute(0, 3, 1, 2)
+        else:
+            img_res = F.interpolate(image.permute(0, 3, 1, 2), size=(rh, rw), mode=interpolation)
+        
         mask_res = F.interpolate(mask.unsqueeze(1), size=(rh, rw), mode="nearest" if interpolation=="nearest" else "bilinear")
 
         if method == "fill / crop" or method == "pad (letterbox)":
