@@ -8,11 +8,11 @@ class EHN_ImageStack:
         return {
             "required": {
                 "image_1": ("IMAGE",),
-                "layout_mode": (["horizontal", "vertical", "grid"], {"default": "horizontal"}),
+                "layout_mode": (["Horizontal", "Vertical", "Grid"], {"default": "Horizontal"}),
                 "max_columns": ("INT", {"default": 2}),
-                "resize_behavior": (["none", "resize_to_first", "fixed_width", "fixed_height"], {"default": "none"}),
+                "resize_behavior": (["None", "Resize to First", "Fixed Width", "Fixed Height"], {"default": "None"}),
                 "resize_value": ("INT", {"default": 1024}),
-                "alignment": (["top_left", "center", "bottom_right"], {"default": "center"}),
+                "alignment": (["Top Left", "Center", "Bottom Right"], {"default": "Center"}),
                 "gap": ("INT", {"default": 0}), "border_width": ("INT", {"default": 0}),
                 "fill_color": ("STRING", {"default": "#FFFFFF"}),
                 "mask_blur": ("INT", {"default": 0}),
@@ -29,6 +29,11 @@ class EHN_ImageStack:
         up = lambda x: x[0] if isinstance(x, list) and x else x
         layout, max_c, r_behav, r_val, align, gp, bw, fc, fh, mb = map(up, [layout_mode, max_columns, resize_behavior, resize_value, alignment, gap, border_width, fill_color, fill_holes, mask_blur])
         
+        # Normalize inputs
+        layout = layout.lower()
+        r_behav = r_behav.lower().replace(" ", "_")
+        align = align.lower().replace(" ", "_")
+
         all_ins = {"image_1": image_1, "mask_1": mask_1, **kwargs}
         keys = sorted([k for k in all_ins if k.startswith("image_")], key=lambda x: int(x.split("_")[1]))
         

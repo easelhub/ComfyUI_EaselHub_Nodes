@@ -36,27 +36,27 @@ NODE_CLASS_MAPPINGS = {
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "EHN_SiliconFlow":     "🤖 EHN LLM Prompt Gen (SiliconFlow)",
-    "EHN_OpenRouter":      "🌌 EHN LLM Prompt Gen (OpenRouter)",
-    "EHN_DeepSeek":        "🐋 EHN LLM Prompt Gen (DeepSeek)",
-    "EHN_OpenAI":          "🧠 EHN LLM Prompt Gen (OpenAI)",
-    "EHN_Gemini":          "💎 EHN LLM Prompt Gen (Google Gemini)",
-    "EHN_CustomLLM":       "🛠️ EHN LLM Prompt Gen (Custom/Local)",
-    "EHN_SetVariable":     "📡 EHN Set Global Var",
-    "EHN_GetVariable":     "📶 EHN Get Global Var",
-    "EHN_Math":            "🧮 EHN Math Expression",
-    "EHN_ExecutionOrder":  "🚦 EHN Execution Order Control",
-    "EHN_PromptList":      "📝 EHN Prompt Mixer",
-    "EHN_LoadImagesFromDir": "📂 EHN Batch Image Loader",
-    "EHN_ImageResize":     "🔧 EHN Image Resize & Crop",
-    "EHN_ImageSplitTiles": "🧱 EHN Tile Split (Tiling)",
-    "EHN_ImageMergeTiles": "🏗️ EHN Tile Merge (Blending)",
-    "EHN_ImageCompare":    "⚖️ EHN Image Compare",
-    "EHN_ImageStack":      "🥞 EHN Image Stack (Merge More)",
-    "EHN_MaskFillHoles":   "🕳️ EHN Mask Fill Holes",
-    "EHN_TeaCache":        "🍵 EHN TeaCache Acceleration",
-    "EHN_ImageSideCalc":   "📏 EHN Get Image Dimensions",
-    "EHN_FreeVRAM":        "🧹 EHN VRAM Cleaner / Cache"
+    "EHN_SiliconFlow":     "🤖 LLM Prompt Gen - SiliconFlow",
+    "EHN_OpenRouter":      "🌌 LLM Prompt Gen - OpenRouter",
+    "EHN_DeepSeek":        "🐋 LLM Prompt Gen - DeepSeek",
+    "EHN_OpenAI":          "🧠 LLM Prompt Gen - OpenAI",
+    "EHN_Gemini":          "💎 LLM Prompt Gen - Google Gemini",
+    "EHN_CustomLLM":       "🛠️ LLM Prompt Gen - Custom/Local",
+    "EHN_SetVariable":     "📡 Set Global Variable",
+    "EHN_GetVariable":     "📶 Get Global Variable",
+    "EHN_Math":            "🧮 Math Expression",
+    "EHN_ExecutionOrder":  "🚦 Execution Order Control",
+    "EHN_PromptList":      "📝 Prompt Mixer",
+    "EHN_LoadImagesFromDir": "📂 Batch Image Loader",
+    "EHN_ImageResize":     "🔧 Image Resize & Crop",
+    "EHN_ImageSplitTiles": "🧱 Split Image to Tiles",
+    "EHN_ImageMergeTiles": "🏗️ Merge Tiles to Image",
+    "EHN_ImageCompare":    "⚖️ Image Compare",
+    "EHN_ImageStack":      "🥞 Image Stack (Grid/Strip)",
+    "EHN_MaskFillHoles":   "🕳️ Mask Operations",
+    "EHN_TeaCache":        "🍵 TeaCache Optimization",
+    "EHN_ImageSideCalc":   "📏 Get Image Dimensions",
+    "EHN_FreeVRAM":        "🧹 VRAM Cleaner"
 }
 
 WEB_DIRECTORY = "./js"

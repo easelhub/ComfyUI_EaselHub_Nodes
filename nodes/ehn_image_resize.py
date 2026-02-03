@@ -11,9 +11,9 @@ class EHN_ImageResize:
                 "width": ("INT", {"default": 0, "max": 16384}),
                 "height": ("INT", {"default": 0, "max": 16384}),
                 "interpolation": (["nearest", "bilinear", "bicubic", "area", "lanczos"], {"default": "bicubic"}),
-                "method": (["stretch", "keep proportion", "fill / crop", "pad (letterbox)", "scale to Target MP (Maintain Ratio)"], {"default": "stretch"}),
+                "method": (["Stretch", "Keep Proportion", "Fill / Crop", "Pad (Letterbox)", "Scale to Target MP"], {"default": "Stretch"}),
                 "crop_pad_pos": (["center", "top", "bottom", "left", "right", "top-left", "top-right", "bottom-left", "bottom-right"], {"default": "center"}),
-                "condition": (["always", "downscale only", "upscale only"], {"default": "always"}),
+                "condition": (["Always", "Downscale Only", "Upscale Only"], {"default": "Always"}),
                 "multiple_of": ("INT", {"default": 32, "max": 512}),
                 "target_mp": ("FLOAT", {"default": 1.0, "step": 0.1}),
                 "mask_blur": ("INT", {"default": 0}),
@@ -29,8 +29,18 @@ class EHN_ImageResize:
     def execute(self, image, width, height, target_mp, interpolation, method, condition, multiple_of, fill_holes, mask_blur, crop_pad_pos="center", mask=None):
         b, h, w, c = image.shape
         tw, th = width, height
+        
+        # Normalize inputs
+        method = method.lower()
+        if "scale to target mp" in method: method = "scale_mp"
+        elif "pad" in method: method = "pad"
+        elif "fill" in method: method = "fill"
+        elif "proportion" in method: method = "proportion"
+        else: method = "stretch"
 
-        if method == "scale to Target MP (Maintain Ratio)":
+        condition = condition.lower()
+
+        if method == "scale_mp":
             s = math.sqrt((target_mp * 1e6) / (w * h + 1e-6))
             tw, th = int(w * s), int(h * s)
         elif width == 0 and height == 0: tw, th = w, h
@@ -38,9 +48,9 @@ class EHN_ImageResize:
         elif height == 0: th = int(h * (width / w))
 
         rw, rh = tw, th
-        if method not in ["stretch", "scale to Target MP (Maintain Ratio)"]:
+        if method != "stretch" and method != "scale_mp":
             sw, sh = tw / w, th / h
-            s = min(sw, sh) if method in ["keep proportion", "pad (letterbox)"] else max(sw, sh)
+            s = min(sw, sh) if method in ["proportion", "pad"] else max(sw, sh)
             rw, rh = int(w * s), int(h * s)
 
         if multiple_of > 1:
@@ -63,8 +73,8 @@ class EHN_ImageResize:
         
         mask_res = F.interpolate(mask.unsqueeze(1), size=(rh, rw), mode="nearest" if interpolation=="nearest" else "bilinear")
 
-        if method == "fill / crop" or method == "pad (letterbox)":
-            if method == "fill / crop":
+        if method == "fill" or method == "pad":
+            if method == "fill":
                 dx, dy = max(0, rw - tw), max(0, rh - th)
                 x, y = dx // 2, dy // 2
                 if "left" in crop_pad_pos: x = 0

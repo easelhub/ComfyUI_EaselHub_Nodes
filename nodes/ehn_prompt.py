@@ -3,7 +3,7 @@ import os, random
 
 class EHN_PromptList:
     @classmethod
-    def INPUT_TYPES(s): return {"required": {"selection_mode": (["All", "Pick One"],)}, "optional": {"incoming_list": (any_type,), "load_from_file": ("STRING", {}), "split_multiline": ("BOOLEAN", {"default": False}), "text": ("STRING", {"multiline": True, "dynamicPrompts": True})}}
+    def INPUT_TYPES(s): return {"required": {"selection_mode": (["Concatenate All", "Pick Random One"],)}, "optional": {"incoming_list": (any_type,), "load_from_file": ("STRING", {}), "split_multiline": ("BOOLEAN", {"default": False}), "text": ("STRING", {"multiline": True, "dynamicPrompts": True})}}
     RETURN_TYPES = ("STRING", "STRING", "INT"); RETURN_NAMES = ("List", "String", "Count"); OUTPUT_IS_LIST = (True, False, False)
     FUNCTION = "run"; CATEGORY = "EaselHub/Logic"
     
