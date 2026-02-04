@@ -8,18 +8,9 @@ app.registerExtension({
             const onNodeCreated = nodeType.prototype.onNodeCreated;
             nodeType.prototype.onNodeCreated = function () {
                 if (onNodeCreated) onNodeCreated.apply(this, arguments);
-                
                 const btn = this.addWidget("button", "🔄 Fetch & Update Models", null, () => {
                     const apiKeyWidget = this.widgets.find(w => w.name === "api_key");
-                    const baseUrlWidget = this.widgets.find(w => w.name === "base_url"); // Only for OpenAI
-                    
-                    if ((!apiKeyWidget || !apiKeyWidget.value || apiKeyWidget.value.includes("...")) && nodeData.name !== "EHN_OpenRouter") {
-                        // OpenRouter fetches public free list, so API key might be optional, but usually required for other actions
-                        // Actually fetching model list from OpenRouter API doesn't strictly need a key if public, but our backend uses request.
-                        // Let's relax check for OpenRouter model fetching or assume key is needed if user wants to use it later.
-                        // But for model fetching OpenRouter public list doesn't need key.
-                    }
-
+                    const baseUrlWidget = this.widgets.find(w => w.name === "base_url");
                     const providerMap = {
                         "EHN_OpenAI": "openai",
                         "EHN_Gemini": "gemini",
@@ -29,10 +20,8 @@ app.registerExtension({
                     };
                     const provider = providerMap[nodeData.name];
                     const baseUrl = baseUrlWidget ? baseUrlWidget.value : null;
-
                     btn.disabled = true;
                     btn.name = "Fetching...";
-                    
                     api.fetchApi("/ehn/update_models", {
                         method: "POST",
                         body: JSON.stringify({ provider, api_key: apiKeyWidget ? apiKeyWidget.value : "", base_url: baseUrl }),
@@ -48,17 +37,14 @@ app.registerExtension({
                             if (modelWidget) {
                                 modelWidget.options.values = data.models;
                                 modelWidget.value = data.models[0];
-                                alert(`Successfully updated ${data.models.length} models!`);
                             }
+                            alert(`Fetched ${data.models.length} models for ${provider}.`);
                         } else {
-                            alert("No models found or empty list returned.");
+                            alert("No models found.");
                         }
-                    }).catch(err => {
-                        alert("Network Error: " + err.message);
-                    }).finally(() => {
+                    }).catch(e => alert(e)).finally(() => {
                         btn.disabled = false;
                         btn.name = "🔄 Fetch & Update Models";
-                        this.setDirtyCanvas(true, true);
                     });
                 });
             };

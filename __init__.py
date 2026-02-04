@@ -12,6 +12,7 @@ from .nodes.ehn_utils import EHN_ImageSideCalc, EHN_FreeVRAM
 from .nodes.ehn_llm import EHN_SiliconFlow, EHN_OpenRouter, EHN_DeepSeek, EHN_OpenAI, EHN_Gemini, EHN_CustomLLM, fetch_and_update_models
 from aiohttp import web
 import server
+import asyncio
 
 @server.PromptServer.instance.routes.post("/ehn/update_models")
 async def update_models(request):
@@ -21,12 +22,8 @@ async def update_models(request):
         api_key = data.get("api_key")
         base_url = data.get("base_url")
         if not provider or not api_key: return web.json_response({"error": "Missing provider or api_key"}, status=400)
-        
-        # Run synchronous fetch in executor to avoid blocking main loop
-        import asyncio
         loop = asyncio.get_event_loop()
         new_models = await loop.run_in_executor(None, fetch_and_update_models, provider, api_key, base_url)
-        
         return web.json_response({"models": new_models})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)

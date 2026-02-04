@@ -1,6 +1,6 @@
-import torch, torch.nn.functional as F, math
-import comfy.utils
-from .ehn_utils import fill_mask_holes
+import torch
+import torch.nn.functional as F
+import math
 
 class EHN_ImageResize:
     @classmethod
@@ -19,28 +19,24 @@ class EHN_ImageResize:
                 "mask_blur": ("INT", {"default": 0}),
                 "fill_holes": ("BOOLEAN", {"default": False}),
             },
-            "optional": { "mask": ("MASK",) }
+            "optional": {"mask": ("MASK",)}
         }
     RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT")
     RETURN_NAMES = ("image", "mask", "width", "height")
     FUNCTION = "execute"
     CATEGORY = "EaselHub/Image"
-    DESCRIPTION = "Resize images with various methods (Stretch, Crop, Pad, etc.) and interpolation (including Lanczos)."
-
+    
     def execute(self, image, width, height, target_mp, interpolation, method, condition, multiple_of, fill_holes, mask_blur, crop_pad_pos="center", mask=None):
         b, h, w, c = image.shape
         tw, th = width, height
-        
-        # Normalize inputs
         method = method.lower()
         if "scale to target mp" in method: method = "scale_mp"
         elif "pad" in method: method = "pad"
         elif "fill" in method: method = "fill"
         elif "proportion" in method: method = "proportion"
         else: method = "stretch"
-
         condition = condition.lower()
-
+        
         if method == "scale_mp":
             s = math.sqrt((target_mp * 1e6) / (w * h + 1e-6))
             tw, th = int(w * s), int(h * s)
@@ -48,57 +44,40 @@ class EHN_ImageResize:
         elif width == 0: tw = int(w * (height / h))
         elif height == 0: th = int(h * (width / w))
 
-        rw, rh = tw, th
-        if method != "stretch" and method != "scale_mp":
-            sw, sh = tw / w, th / h
-            s = min(sw, sh) if method in ["proportion", "pad"] else max(sw, sh)
-            rw, rh = int(w * s), int(h * s)
+        if condition == "downscale only" and (tw >= w and th >= h): return (image, mask if mask is not None else torch.zeros((b,h,w)), w, h)
+        if condition == "upscale only" and (tw <= w and th <= h): return (image, mask if mask is not None else torch.zeros((b,h,w)), w, h)
 
-        if multiple_of > 1:
-            rw, rh = max(multiple_of, (rw // multiple_of) * multiple_of), max(multiple_of, (rh // multiple_of) * multiple_of)
-            if method == "stretch": tw, th = rw, rh
-
-        if (condition == "downscale only" and rw >= w and rh >= h) or (condition == "upscale only" and rw <= w and rh <= h):
-            if mask is None: mask = torch.zeros((b, h, w), device=image.device)
-            elif mask.dim() == 2: mask = mask.unsqueeze(0).repeat(b, 1, 1)
-            return (image, mask, w, h)
-
-        if mask is None: mask = torch.zeros((b, h, w), device=image.device)
-        elif mask.dim() == 2: mask = mask.unsqueeze(0).repeat(b, 1, 1)
-
-        if interpolation == "lanczos":
-            # common_upscale returns BHWC, we need BCHW for subsequent operations
-            img_res = comfy.utils.common_upscale(image.movedim(-1,1), rw, rh, "lanczos", "disabled").movedim(1,-1).permute(0, 3, 1, 2)
-        else:
-            img_res = F.interpolate(image.permute(0, 3, 1, 2), size=(rh, rw), mode=interpolation)
+        tw = (tw // multiple_of) * multiple_of
+        th = (th // multiple_of) * multiple_of
         
-        mask_res = F.interpolate(mask.unsqueeze(1), size=(rh, rw), mode="nearest" if interpolation=="nearest" else "bilinear")
+        if method == "proportion":
+            s = min(tw/w, th/h)
+            tw, th = int(w*s), int(h*s)
+        
+        if mask is None: mask = torch.zeros((b, h, w), dtype=torch.float32, device=image.device)
+        if mask.shape != (b, h, w): mask = F.interpolate(mask.unsqueeze(1), size=(h, w), mode="nearest").squeeze(1)
 
-        if method == "fill" or method == "pad":
-            if method == "fill":
-                dx, dy = max(0, rw - tw), max(0, rh - th)
-                x, y = dx // 2, dy // 2
-                if "left" in crop_pad_pos: x = 0
-                elif "right" in crop_pad_pos: x = dx
-                if "top" in crop_pad_pos: y = 0
-                elif "bottom" in crop_pad_pos: y = dy
-                img_res = img_res[..., y:y+th, x:x+tw]
-                mask_res = mask_res[..., y:y+th, x:x+tw]
+        if method in ["pad", "fill"]:
+            s = min(tw/w, th/h) if method == "pad" else max(tw/w, th/h)
+            nw, nh = int(w*s), int(h*s)
+            img_r = F.interpolate(image.permute(0,3,1,2), size=(nh, nw), mode=interpolation if interpolation != "lanczos" else "bicubic")
+            msk_r = F.interpolate(mask.unsqueeze(1), size=(nh, nw), mode="nearest")
+            
+            pad_w, pad_h = tw - nw, th - nh
+            px, py = pad_w // 2, pad_h // 2
+            if "top" in crop_pad_pos: py = 0
+            elif "bottom" in crop_pad_pos: py = pad_h
+            if "left" in crop_pad_pos: px = 0
+            elif "right" in crop_pad_pos: px = pad_w
+            
+            if method == "pad":
+                img_out = F.pad(img_r, (px, pad_w-px, py, pad_h-py), value=0)
+                msk_out = F.pad(msk_r, (px, pad_w-px, py, pad_h-py), value=0)
             else:
-                pw, ph = max(0, tw - rw), max(0, th - rh)
-                pl, pt = pw // 2, ph // 2
-                if "left" in crop_pad_pos: pl = 0
-                elif "right" in crop_pad_pos: pl = pw
-                if "top" in crop_pad_pos: pt = 0
-                elif "bottom" in crop_pad_pos: pt = ph
-                pad = (pl, pw - pl, pt, ph - pt)
-                img_res = F.pad(img_res, pad)
-                mask_res = F.pad(mask_res, pad)
+                img_out = img_r[:, :, py:py+th, px:px+tw]
+                msk_out = msk_r[:, :, py:py+th, px:px+tw]
+        else:
+            img_out = F.interpolate(image.permute(0,3,1,2), size=(th, tw), mode=interpolation if interpolation != "lanczos" else "bicubic")
+            msk_out = F.interpolate(mask.unsqueeze(1), size=(th, tw), mode="nearest")
 
-        if fill_holes:
-            mask_res = fill_mask_holes(mask_res)
-
-        if mask_blur > 0:
-            mask_res = F.avg_pool2d(F.pad(mask_res.unsqueeze(1), [mask_blur]*4, mode='reflect'), mask_blur*2+1, 1).squeeze(1)
-
-        return (img_res.permute(0, 2, 3, 1), mask_res.squeeze(1), img_res.shape[3], img_res.shape[2])
+        return (img_out.permute(0,2,3,1), msk_out.squeeze(1), tw, th)

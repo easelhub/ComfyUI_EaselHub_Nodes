@@ -1,9 +1,12 @@
-import torch, torch.nn.functional as F, math
+import torch
+import torch.nn.functional as F
+import math
 from .ehn_utils import any_type
 
 class EHN_ImageSplitTiles:
     @classmethod
-    def INPUT_TYPES(s): return {"required": {"image":("IMAGE",), "tile_size":("INT",{"default":1024}), "overlap":("INT",{"default":64})}}
+    def INPUT_TYPES(s):
+        return {"required": {"image":("IMAGE",), "tile_size":("INT",{"default":1024}), "overlap":("INT",{"default":64})}}
     RETURN_TYPES = ("IMAGE", any_type)
     RETURN_NAMES = ("tiles", "tile_info")
     FUNCTION = "split"
@@ -21,15 +24,14 @@ class EHN_ImageSplitTiles:
             for c in range(cols):
                 y, x = r*stride, c*stride
                 tiles.append(img_p[:, :, y:y+tile_size, x:x+tile_size])
-        
         stacked = torch.stack(tiles, dim=0).permute(1,0,2,3,4)
         out = stacked.reshape(-1, stacked.shape[2], tile_size, tile_size)
-        
         return (out.permute(0,2,3,1), {"orig_w":w, "orig_h":h, "tile_size":tile_size, "overlap":overlap, "rows":rows, "cols":cols, "batch":b})
 
 class EHN_ImageMergeTiles:
     @classmethod
-    def INPUT_TYPES(s): return {"required": {"images":("IMAGE",), "tile_info":(any_type,)}}
+    def INPUT_TYPES(s):
+        return {"required": {"images":("IMAGE",), "tile_info":(any_type,)}}
     RETURN_TYPES = ("IMAGE",)
     FUNCTION = "merge"
     CATEGORY = "EaselHub/Image"
@@ -39,27 +41,20 @@ class EHN_ImageMergeTiles:
         scale = tw / tile_info["tile_size"]
         ov, strd = int(tile_info["overlap"]*scale), int(tw - int(tile_info["overlap"]*scale))
         fw, fh = (cs-1)*strd + tw, (rs-1)*strd + th
-        
         dev = images.device
         yr, xr = torch.linspace(0,1,th,device=dev), torch.linspace(0,1,tw,device=dev)
         wm = (torch.min(yr, yr.flip(0))*2*(th/(ov*2+1e-6))).clamp(0,1)[:,None] * (torch.min(xr, xr.flip(0))*2*(tw/(ov*2+1e-6))).clamp(0,1)[None,:]
-        wm = (wm*wm*(3-2*wm))[None,None]
-        
+        wm = (wm*wm*(3-2*wm))[None]
         out = []
         img_c = images.permute(0,3,1,2)
         for b in range(bat):
-            cnv = torch.zeros((c, fh, fw), device=dev)
+            merged = torch.zeros((c, fh, fw), device=dev)
             wmap = torch.zeros((1, fh, fw), device=dev)
-            off = b * rs * cs
-            idx = 0
             for r in range(rs):
-                for c_ in range(cs):
-                    if idx >= rs*cs or off+idx >= t_cnt: break
-                    y, x = r*strd, c_*strd
-                    t = img_c[off+idx].unsqueeze(0)
-                    cnv[:, y:y+th, x:x+tw] += (t*wm)[0]
-                    wmap[:, y:y+th, x:x+tw] += wm[0]
-                    idx += 1
-            fin = cnv / wmap.clamp(min=1e-5)
-            out.append(fin[:, :int(oh*scale), :int(ow*scale)].permute(1,2,0).unsqueeze(0))
-        return (torch.cat(out, 0) if out else torch.zeros((1,512,512,3)),)
+                for col in range(cs):
+                    idx = b*(rs*cs) + r*cs + col
+                    y, x = r*strd, col*strd
+                    merged[:, y:y+th, x:x+tw] += img_c[idx] * wm
+                    wmap[:, y:y+th, x:x+tw] += wm
+            out.append(merged / (wmap + 1e-6))
+        return (torch.stack(out).permute(0,2,3,1)[:, :oh, :ow, :],)
