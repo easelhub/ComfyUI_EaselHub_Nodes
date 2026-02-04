@@ -37,33 +37,30 @@ def fill_mask_holes(mask):
 
 class EHN_ImageSideCalc:
     @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {"image": ("IMAGE",), "side": (["Longest", "Shortest"],)}}
-    RETURN_TYPES = ("INT", "INT", "INT")
-    RETURN_NAMES = ("Side", "Width", "Height")
+    def INPUT_TYPES(s): return {"required": {"image": ("IMAGE",), "side": (["Longest", "Shortest"],)}}
+    RETURN_TYPES = ("INT", "INT", "INT", "FLOAT", "STRING")
+    RETURN_NAMES = ("Side", "Width", "Height", "Aspect Ratio", "Orientation")
     FUNCTION = "calc"
     CATEGORY = "EaselHub/Utils"
     def calc(self, image, side):
         h, w = image.shape[1:3]
-        return ({"Longest": max(h, w)}.get(side, min(h, w)), w, h)
+        return (max(h, w) if side == "Longest" else min(h, w), w, h, w / h, "Landscape" if w > h else "Portrait" if h > w else "Square")
 
 class EHN_FreeVRAM:
     @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {"mode": (["Soft", "Hard"],)}, "optional": {"any_input": (any_type,)}}
+    def INPUT_TYPES(s): return {"required": {}, "optional": {"any_input": (any_type,)}}
     RETURN_TYPES = (any_type,)
     FUNCTION = "run"
     CATEGORY = "EaselHub/Utils"
     OUTPUT_NODE = True
-    def run(self, mode, any_input=None):
+    def run(self, any_input=None):
         try:
-            for obj in gc.get_objects():
-                if hasattr(obj, "tc_logic"): delattr(obj, "tc_logic")
+            for o in gc.get_objects():
+                if hasattr(o, "tc_logic"): delattr(o, "tc_logic")
         except: pass
         gc.collect()
-        torch.cuda.empty_cache()
-        try: torch.cuda.ipc_collect()
-        except: pass
-        if mode == "Hard": comfy.model_management.unload_all_models()
+        if hasattr(comfy.model_management, "cleanup_models"): comfy.model_management.cleanup_models()
         comfy.model_management.soft_empty_cache()
+        torch.cuda.empty_cache()
+        torch.cuda.ipc_collect()
         return (any_input,)
