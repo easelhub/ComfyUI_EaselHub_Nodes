@@ -1,6 +1,6 @@
 import torch
 import torch.nn.functional as F
-from .mask_ops import process_mask_core
+from .ehn_mask_ops import process_mask_core
 
 class EHN_ImageResize:
     @classmethod
