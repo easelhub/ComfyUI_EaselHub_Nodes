@@ -1,10 +1,10 @@
-from .nodes.image_tiling import EHN_ImageTiler, EHN_ImageMerger
-from .nodes.image_resize import EHN_ImageResize
-from .nodes.mask_ops import EHN_MaskProcessor
-from .nodes.image_utils import EHN_GetImageSize
-from .nodes.number_ops import EHN_MathExpression, EHN_NumberCompare
-from .nodes.system_utils import EHN_SystemOptimizer
-from .nodes.image_comparison import EHN_ImageComparison
+from .nodes.ehn_image_tiling import EHN_ImageTiler, EHN_ImageMerger
+from .nodes.ehn_image_resize import EHN_ImageResize
+from .nodes.ehn_mask_ops import EHN_MaskProcessor
+from .nodes.ehn_image_utils import EHN_GetImageSize
+from .nodes.ehn_number_ops import EHN_MathExpression, EHN_NumberCompare
+from .nodes.ehn_system_utils import EHN_SystemOptimizer
+from .nodes.ehn_image_comparison import EHN_ImageComparison
 
 NODE_CLASS_MAPPINGS = {
     "EHN_ImageTiler": EHN_ImageTiler,
