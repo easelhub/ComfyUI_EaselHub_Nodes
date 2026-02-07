@@ -6,6 +6,7 @@ from .nodes.ehn_number_ops import EHN_MathExpression, EHN_NumberCompare
 from .nodes.ehn_system_utils import EHN_SystemOptimizer
 from .nodes.ehn_image_comparison import EHN_ImageComparison
 from .nodes.ehn_text_ops import EHN_PromptList
+from .nodes.ehn_ai_generator import EHN_AIGenerator
 
 NODE_CLASS_MAPPINGS = {
     "EHN_ImageTiler": EHN_ImageTiler,
@@ -17,7 +18,8 @@ NODE_CLASS_MAPPINGS = {
     "EHN_NumberCompare": EHN_NumberCompare,
     "EHN_SystemOptimizer": EHN_SystemOptimizer,
     "EHN_ImageComparison": EHN_ImageComparison,
-    "EHN_PromptList": EHN_PromptList
+    "EHN_PromptList": EHN_PromptList,
+    "EHN_AIGenerator": EHN_AIGenerator
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -30,7 +32,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_NumberCompare": "⚖️EHN Number Compare",
     "EHN_SystemOptimizer": "🚀EHN System Optimizer",
     "EHN_ImageComparison": "👁️EHN Image Comparison",
-    "EHN_PromptList": "📝EHN Prompt List"
+    "EHN_PromptList": "📝EHN Prompt List",
+    "EHN_AIGenerator": "🤖EHN AI Generator"
 }
 
 WEB_DIRECTORY = "./web"
