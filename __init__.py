@@ -8,8 +8,10 @@ from .nodes.ehn_image_comparison import EHN_ImageComparison
 from .nodes.ehn_text_ops import EHN_PromptList
 from .nodes.ehn_ai_generator import EHN_AIGenerator, EHN_OpenAIGenerator, EHN_OllamaGenerator
 from .nodes.ehn_image_loader import EHN_ImageLoader
+from .nodes.ehn_florence2 import EHN_Florence2PromptGen
 
 NODE_CLASS_MAPPINGS = {
+    "EHN_Florence2PromptGen": EHN_Florence2PromptGen,
     "EHN_ImageLoader": EHN_ImageLoader,
     "EHN_ImageTiler": EHN_ImageTiler,
     "EHN_ImageMerger": EHN_ImageMerger,
@@ -41,6 +43,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_OpenAIGenerator": "🤖EHN OpenAI Generator",
     "EHN_OllamaGenerator": "🤖EHN Ollama Generator",
     "EHN_ImageLoader": "📂EHN Image Loader",
+    "EHN_Florence2PromptGen": "📝EHN Florence2 Prompt",
 }
 
 WEB_DIRECTORY = "./web"
