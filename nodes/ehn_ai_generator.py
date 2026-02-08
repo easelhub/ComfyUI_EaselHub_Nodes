@@ -73,7 +73,7 @@ class EHN_AIGenerator:
     @classmethod
     def INPUT_TYPES(s):
         config = load_config()
-        platforms = ["SiliconFlow", "BigModel", "Gemini", "Groq", "GitHub", "SambaNova", "OpenRouter", "LongCat", "DeepSeek"]
+        platforms = ["SiliconFlow", "BigModel", "DeepSeek", "LongCat", "Gemini", "Groq", "GitHub", "SambaNova", "OpenRouter", "Cloudflare", "NVIDIA"]
         models = []
         default_platform = platforms[0]
         if default_platform in config and "models" in config[default_platform]:
@@ -111,16 +111,39 @@ class EHN_AIGenerator:
         try:
             if platform == "Gemini":
                 result_text = self.call_gemini(api_key, model, full_prompt)
-            elif platform in ["SiliconFlow", "BigModel", "Groq", "GitHub", "SambaNova", "OpenRouter", "LongCat", "DeepSeek"]:
+            elif platform in ["SiliconFlow", "BigModel", "DeepSeek", "LongCat", "Groq", "GitHub", "SambaNova", "OpenRouter", "Cloudflare", "NVIDIA"]:
                 api_base = "https://api.openai.com/v1"
                 if platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
                 elif platform == "BigModel": api_base = "https://open.bigmodel.cn/api/paas/v4"
+                elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
+                elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
                 elif platform == "Groq": api_base = "https://api.groq.com/openai/v1"
                 elif platform == "GitHub": api_base = "https://models.inference.ai.azure.com"
                 elif platform == "SambaNova": api_base = "https://api.sambanova.ai/v1"
                 elif platform == "OpenRouter": api_base = "https://openrouter.ai/api/v1"
-                elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
-                elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
+                elif platform == "Cloudflare": api_base = "https://api.cloudflare.com/client/v4/accounts" # Special handling needed
+                elif platform == "NVIDIA": api_base = "https://integrate.api.nvidia.com/v1"
+                
+                if platform == "Cloudflare":
+                     # Cloudflare requires account_id in the URL: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/run/@cf/{model_name}
+                     # But for OpenAI compatible chat completions it might be: https://api.cloudflare.com/client/v4/accounts/{account_id}/ai/v1
+                     # The user needs to provide account_id. We might need to ask for it or assume it's part of base_url if we were using custom.
+                     # Since we don't have a separate field for account_id, we might need to rely on a specific format or config.
+                     # For now, let's assume the standard OpenAI compatible endpoint if available, or use a placeholder.
+                     # Actually, Cloudflare Workers AI OpenAI compatible endpoint is: https://api.cloudflare.com/client/v4/accounts/{ACCOUNT_ID}/ai/v1
+                     # We can't easily support this without an extra field.
+                     # Let's try to parse it from the API Key if the user provides "account_id:api_token" format, or just fail gracefully.
+                     # BETTER APPROACH: For Cloudflare, we might need the user to put the full URL in a config or something.
+                     # But wait, the requirement is just "Add Cloudflare".
+                     # Let's assume the user puts "ACCOUNT_ID" in the "custom_model" field? No, that's removed.
+                     # Let's try to use the api_key as "ACCOUNT_ID:API_TOKEN"
+                     if ":" in api_key:
+                         acc_id, token = api_key.split(":", 1)
+                         api_base = f"https://api.cloudflare.com/client/v4/accounts/{acc_id}/ai/v1"
+                         api_key = token
+                     else:
+                         return ("Error: For Cloudflare, API Key must be 'ACCOUNT_ID:API_TOKEN'", "Error: For Cloudflare, API Key must be 'ACCOUNT_ID:API_TOKEN'")
+
                 result_text = self.call_openai_compatible(api_base, api_key, model, full_prompt)
         except Exception as e:
             return (f"Error: {str(e)}", f"Error: {str(e)}")
@@ -363,29 +386,47 @@ async def update_models_route(request):
             api_base = "https://api.openai.com/v1"
             if platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
             elif platform == "BigModel": api_base = "https://open.bigmodel.cn/api/paas/v4"
+            elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
+            elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
             elif platform == "Groq": api_base = "https://api.groq.com/openai/v1"
             elif platform == "GitHub": api_base = "https://models.inference.ai.azure.com"
             elif platform == "SambaNova": api_base = "https://api.sambanova.ai/v1"
             elif platform == "OpenRouter": api_base = "https://openrouter.ai/api/v1"
-            elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
-            elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
+            elif platform == "NVIDIA": api_base = "https://integrate.api.nvidia.com/v1"
+            elif platform == "Cloudflare":
+                 if ":" in api_key:
+                     acc_id, token = api_key.split(":", 1)
+                     api_base = f"https://api.cloudflare.com/client/v4/accounts/{acc_id}/ai/v1"
+                     api_key = token
+                 else:
+                     # Fallback or error, but for listing models we might fail if format is wrong
+                     api_base = "https://api.cloudflare.com/client/v4/accounts/PLACEHOLDER/ai/v1"
+
             elif platform == "OpenAI": api_base = base_url
             elif platform == "Ollama": api_base = base_url
             
             url = f"{api_base}/models"
             if platform == "BigModel":
                 models = ["glm-4", "glm-4-air", "glm-4-flash", "glm-3-turbo"]
+            elif platform == "Cloudflare" and "PLACEHOLDER" in api_base:
+                 models = ["Error: API Key must be ACCOUNT_ID:API_TOKEN"]
             else:
                 req = urllib.request.Request(url, headers={'Authorization': f'Bearer {api_key}'})
                 with urllib.request.urlopen(req) as response:
                     resp_data = json.loads(response.read().decode('utf-8'))
                     if platform == "GitHub":
                         data_list = resp_data
+                    elif platform == "Cloudflare":
+                        data_list = resp_data.get('result', [])
                     else:
                         data_list = resp_data.get('data', [])
                     
                     if platform == "SiliconFlow":
                         models = [m['id'] for m in data_list if 'free' in m['id'] or 'deepseek' in m['id']]
+                    elif platform == "DeepSeek":
+                        models = [m['id'] for m in data_list if 'deepseek' in m['id']]
+                    elif platform == "LongCat":
+                        models = [m['id'] for m in data_list]
                     elif platform == "Groq":
                         models = [m['id'] for m in data_list]
                     elif platform == "GitHub":
@@ -398,10 +439,10 @@ async def update_models_route(request):
                             if (str(m.get('pricing', {}).get('prompt', '1')) == '0' and str(m.get('pricing', {}).get('completion', '1')) == '0')
                             or ':free' in m['id']
                         ]
-                    elif platform == "LongCat":
+                    elif platform == "NVIDIA":
                         models = [m['id'] for m in data_list]
-                    elif platform == "DeepSeek":
-                        models = [m['id'] for m in data_list if 'deepseek' in m['id']]
+                    elif platform == "Cloudflare":
+                        models = [m['name'] for m in data_list]
                     elif platform == "OpenAI" or platform == "Ollama":
                         models = [m['id'] for m in data_list]
 
