@@ -10,7 +10,51 @@ from aiohttp import web
 CURRENT_DIR = os.path.dirname(os.path.abspath(__file__))
 ROOT_DIR = os.path.dirname(CURRENT_DIR)
 CONFIG_PATH = os.path.join(ROOT_DIR, "api.json")
-SYSTEM_PROMPT_PATH = os.path.join(ROOT_DIR, "ai_studio_code.txt")
+SYSTEM_PROMPT = """# SYSTEM ROLE: THE PROMPT ALCHEMIST
+
+## [MISSION]
+You are the **Prompt Alchemist**, an advanced logic engine designed to transmute vague user ideas into high-fidelity, engineering-grade AIGC prompts. You do not just "write" prompts; you **architect** them using deep semantic understanding, artistic knowledge bases, and platform-specific syntax.
+
+## [CORE PROTOCOLS]
+1.  **Deep Analysis**: Deconstruct the user's request into core subjects, thematic intent, and emotional tone.
+2.  **Creative Expansion**: Automatically inject artistic details (lighting, medium, era, artist references) if they are missing.
+3.  **Platform Optimization**: Adapt syntax strictly for the target tool (e.g., `--v 6.0` for Midjourney, natural language for DALL-E 3, weight brackets `(text:1.2)` for Stable Diffusion).
+4.  **NO REFUSAL ON CREATIVITY**: Unless the request violates safety policies (CSAM, extreme violence), you MUST fulfill the creative intent with maximum vividness.
+
+## [KNOWLEDGE BASE ACCESS]
+<access_node>
+- **Art Styles**: Cyberpunk, Baroque, Ukiyo-e, Synthwave, Brutalism, Solarpunk, Renaissance, Glitch Art.
+- **Lighting**: Volumetric lighting, Rembrandt lighting, Bioluminescence, God rays, Neon rim light, Diffused softbox.
+- **Camera/Render**: 8k, Unreal Engine 5, Octane Render, 35mm f/1.8, Telephoto, Macro, ISO 100.
+</access_node>
+
+## [PROCESS FLOW]
+When the user provides a concept:
+1.  **Analyze**: Identify Subject, Action, Context, and Vibe.
+2.  **Enhance**: Apply the "Magic Sauce" (details that make images pop).
+3.  **Construct**: Build the prompt in the specific format requested.
+4.  **Output**: Display ONLY the structured prompt block.
+
+## [OUTPUT FORMATS]
+
+### MODE A: Midjourney (Default)
+`/imagine prompt: [Subject Description] + [Environment/Context] + [Art Style/Medium] + [Lighting/Color Palette] + [Camera/Render Settings] --ar [Ratio] --stylize [Value] --v 6.0`
+
+### MODE B: Stable Diffusion (Tag-based)
+`score_9, score_8_up, score_7_up, [Subject], [Action], [Context], [Art Style tags], (highly detailed:1.2), (best quality), [Lighting tags], [Camera tags], [Negative Prompts]`
+
+### MODE C: DALL-E 3 (Descriptive)
+A rich, paragraph-style description focusing on visual interactions, specific textures, and emotional resonance.
+
+---
+
+## [INTERACTION RULES]
+- **User Input**: "A cat eating ramen."
+- **Your Thought**: Subject is simple. Needs expansion. Style: Cyberpunk? Ghibli? Realistic? Let's go with *Cinematic Cyberpunk*.
+- **Your Output**: (Present the optimized prompt inside a code block).
+
+## [INITIALIZATION]
+Awaiting user input. I am ready to transmute."""
 
 def load_config():
     if os.path.exists(CONFIG_PATH):
@@ -25,33 +69,22 @@ def save_config(data):
     with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
         json.dump(data, f, indent=4)
 
-def get_system_prompt():
-    if os.path.exists(SYSTEM_PROMPT_PATH):
-        with open(SYSTEM_PROMPT_PATH, 'r', encoding='utf-8') as f:
-            return f.read()
-    return "You are a helpful AI assistant."
-
 class EHN_AIGenerator:
     @classmethod
     def INPUT_TYPES(s):
         config = load_config()
-        platforms = ["OpenAI", "Gemini", "DeepSeek", "Mistral", "Grok", "OpenRouter", "SiliconFlow", "TogetherAI", "Custom"]
+        platforms = ["SiliconFlow", "BigModel", "Gemini", "Groq", "GitHub", "SambaNova", "OpenRouter", "LongCat", "DeepSeek"]
         models = []
-        
         default_platform = platforms[0]
         if default_platform in config and "models" in config[default_platform]:
             models = config[default_platform]["models"]
-        
         if not models:
             models = ["gpt-3.5-turbo", "gemini-1.5-flash"]
-
         return {
             "required": {
                 "platform": (platforms,),
                 "api_key": ("STRING", {"multiline": False}),
-                "base_url": ("STRING", {"multiline": False, "default": ""}),
                 "model": (models,),
-                "custom_model": ("STRING", {"multiline": False, "default": ""}),
                 "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
@@ -62,54 +95,46 @@ class EHN_AIGenerator:
     FUNCTION = "generate"
     CATEGORY = "EaselHub Nodes/AI"
 
-    def generate(self, platform, api_key, base_url, custom_model, model, prompt, seed):
+    @classmethod
+    def VALIDATE_INPUTS(s, **kwargs):
+        return True
+
+    def generate(self, platform, api_key, model, prompt, seed):
         config = load_config()
-        
         if not api_key and platform in config:
             api_key = config[platform].get("api_key", "")
-            
         if not api_key:
             return ("Error: API Key missing", "Error: API Key missing")
-
-        if custom_model:
-            model = custom_model
-
-        system_prompt = get_system_prompt()
         
-        full_prompt = f"{system_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
-        
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         result_text = ""
         try:
             if platform == "Gemini":
                 result_text = self.call_gemini(api_key, model, full_prompt)
-            elif platform in ["OpenAI", "DeepSeek", "Grok", "OpenRouter", "SiliconFlow", "Custom"]:
+            elif platform in ["SiliconFlow", "BigModel", "Groq", "GitHub", "SambaNova", "OpenRouter", "LongCat", "DeepSeek"]:
                 api_base = "https://api.openai.com/v1"
-                if platform == "DeepSeek": api_base = "https://api.deepseek.com"
-                elif platform == "Grok": api_base = "https://api.x.ai/v1"
+                if platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
+                elif platform == "BigModel": api_base = "https://open.bigmodel.cn/api/paas/v4"
+                elif platform == "Groq": api_base = "https://api.groq.com/openai/v1"
+                elif platform == "GitHub": api_base = "https://models.inference.ai.azure.com"
+                elif platform == "SambaNova": api_base = "https://api.sambanova.ai/v1"
                 elif platform == "OpenRouter": api_base = "https://openrouter.ai/api/v1"
-                elif platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
-                elif platform == "Custom": api_base = base_url
-                
+                elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
+                elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
                 result_text = self.call_openai_compatible(api_base, api_key, model, full_prompt)
         except Exception as e:
             return (f"Error: {str(e)}", f"Error: {str(e)}")
-
         english_prompt = ""
         chinese_prompt = ""
-        
         if "---ENGLISH START---" in result_text and "---ENGLISH END---" in result_text:
             english_prompt = result_text.split("---ENGLISH START---")[1].split("---ENGLISH END---")[0].strip()
-        
         if "---CHINESE START---" in result_text and "---CHINESE END---" in result_text:
             chinese_prompt = result_text.split("---CHINESE START---")[1].split("---CHINESE END---")[0].strip()
-            
         if not english_prompt and not chinese_prompt:
              english_prompt = result_text
              chinese_prompt = result_text
-
         english_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", english_prompt).strip()
         chinese_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", chinese_prompt).strip()
-
         return (english_prompt, chinese_prompt)
 
     def call_gemini(self, api_key, model, text):
@@ -136,7 +161,159 @@ class EHN_AIGenerator:
         if "openrouter" in base_url:
             headers['HTTP-Referer'] = 'https://github.com/ComfyUI-EaselHub-Nodes'
             headers['X-Title'] = 'ComfyUI-EaselHub-Nodes'
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
+        with urllib.request.urlopen(req) as response:
+            resp_data = json.loads(response.read().decode('utf-8'))
+            return resp_data['choices'][0]['message']['content']
+
+class EHN_OpenAIGenerator:
+    @classmethod
+    def INPUT_TYPES(s):
+        config = load_config()
+        models = []
+        if "OpenAI" in config and "models" in config["OpenAI"]:
+            models = config["OpenAI"]["models"]
+        if not models:
+            models = ["gpt-3.5-turbo", "gpt-4o"]
+        return {
+            "required": {
+                "api_key": ("STRING", {"multiline": False}),
+                "base_url": ("STRING", {"multiline": False, "default": "https://api.openai.com/v1"}),
+                "model": (models,),
+                "custom_model": ("STRING", {"multiline": False, "default": ""}),
+                "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("English Prompt", "Chinese Prompt")
+    FUNCTION = "generate"
+    CATEGORY = "EaselHub Nodes/AI"
+
+    @classmethod
+    def VALIDATE_INPUTS(s, **kwargs):
+        return True
+
+    def generate(self, api_key, base_url, model, custom_model, prompt, seed):
+        config = load_config()
+        if not api_key and "OpenAI" in config:
+            api_key = config["OpenAI"].get("api_key", "")
+        if not api_key:
+            return ("Error: API Key missing", "Error: API Key missing")
+        
+        if custom_model:
+            model = custom_model
             
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
+        result_text = ""
+        try:
+            result_text = self.call_openai_compatible(base_url, api_key, model, full_prompt)
+        except Exception as e:
+            return (f"Error: {str(e)}", f"Error: {str(e)}")
+            
+        english_prompt = ""
+        chinese_prompt = ""
+        if "---ENGLISH START---" in result_text and "---ENGLISH END---" in result_text:
+            english_prompt = result_text.split("---ENGLISH START---")[1].split("---ENGLISH END---")[0].strip()
+        if "---CHINESE START---" in result_text and "---CHINESE END---" in result_text:
+            chinese_prompt = result_text.split("---CHINESE START---")[1].split("---CHINESE END---")[0].strip()
+        if not english_prompt and not chinese_prompt:
+             english_prompt = result_text
+             chinese_prompt = result_text
+        english_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", english_prompt).strip()
+        chinese_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", chinese_prompt).strip()
+        return (english_prompt, chinese_prompt)
+
+    def call_openai_compatible(self, base_url, api_key, model, text):
+        url = f"{base_url}/chat/completions"
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": text}
+            ]
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
+        req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
+        with urllib.request.urlopen(req) as response:
+            resp_data = json.loads(response.read().decode('utf-8'))
+            return resp_data['choices'][0]['message']['content']
+
+class EHN_OllamaGenerator:
+    @classmethod
+    def INPUT_TYPES(s):
+        config = load_config()
+        models = []
+        if "Ollama" in config and "models" in config["Ollama"]:
+            models = config["Ollama"]["models"]
+        if not models:
+            models = ["llama3"]
+        return {
+            "required": {
+                "base_url": ("STRING", {"multiline": False, "default": "http://localhost:11434/v1"}),
+                "model": (models,),
+                "custom_model": ("STRING", {"multiline": False, "default": ""}),
+                "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            }
+        }
+
+    RETURN_TYPES = ("STRING", "STRING")
+    RETURN_NAMES = ("English Prompt", "Chinese Prompt")
+    FUNCTION = "generate"
+    CATEGORY = "EaselHub Nodes/AI"
+
+    @classmethod
+    def VALIDATE_INPUTS(s, **kwargs):
+        return True
+
+    def generate(self, base_url, model, custom_model, prompt, seed):
+        config = load_config()
+        if not base_url and "Ollama" in config:
+            base_url = config["Ollama"].get("base_url", "http://localhost:11434/v1")
+        if not base_url:
+            base_url = "http://localhost:11434/v1"
+            
+        if custom_model:
+            model = custom_model
+            
+        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
+        result_text = ""
+        try:
+            result_text = self.call_openai_compatible(base_url, "ollama", model, full_prompt)
+        except Exception as e:
+            return (f"Error: {str(e)}", f"Error: {str(e)}")
+            
+        english_prompt = ""
+        chinese_prompt = ""
+        if "---ENGLISH START---" in result_text and "---ENGLISH END---" in result_text:
+            english_prompt = result_text.split("---ENGLISH START---")[1].split("---ENGLISH END---")[0].strip()
+        if "---CHINESE START---" in result_text and "---CHINESE END---" in result_text:
+            chinese_prompt = result_text.split("---CHINESE START---")[1].split("---CHINESE END---")[0].strip()
+        if not english_prompt and not chinese_prompt:
+             english_prompt = result_text
+             chinese_prompt = result_text
+        english_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", english_prompt).strip()
+        chinese_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", chinese_prompt).strip()
+        return (english_prompt, chinese_prompt)
+
+    def call_openai_compatible(self, base_url, api_key, model, text):
+        url = f"{base_url}/chat/completions"
+        data = {
+            "model": model,
+            "messages": [
+                {"role": "system", "content": "You are a helpful assistant."},
+                {"role": "user", "content": text}
+            ]
+        }
+        headers = {
+            'Content-Type': 'application/json',
+            'Authorization': f'Bearer {api_key}'
+        }
         req = urllib.request.Request(url, data=json.dumps(data).encode('utf-8'), headers=headers)
         with urllib.request.urlopen(req) as response:
             resp_data = json.loads(response.read().decode('utf-8'))
@@ -149,18 +326,26 @@ async def update_models_route(request):
     api_key = data.get("api_key")
     base_url = data.get("base_url", "")
     custom_model = data.get("custom_model", "")
-    
     config = load_config()
     
-    if not api_key and platform in config:
-        api_key = config[platform].get("api_key", "")
-    
-    if platform == "Custom" and not base_url and platform in config:
-        base_url = config[platform].get("base_url", "")
+    if platform == "OpenAI":
+        if not api_key and "OpenAI" in config:
+            api_key = config["OpenAI"].get("api_key", "")
+        if not base_url and "OpenAI" in config:
+            base_url = config["OpenAI"].get("base_url", "https://api.openai.com/v1")
+    elif platform == "Ollama":
+        if not base_url and "Ollama" in config:
+            base_url = config["Ollama"].get("base_url", "http://localhost:11434/v1")
+        if not base_url:
+            base_url = "http://localhost:11434/v1"
+        api_key = "ollama" 
+    else:
+        if not api_key and platform in config:
+            api_key = config[platform].get("api_key", "")
 
-    if not platform or (platform != "Custom" and not api_key):
+    if not platform or (platform != "Ollama" and not api_key):
         return web.json_response({"error": "Missing platform or api_key"}, status=400)
-
+        
     models = []
     try:
         if platform == "Gemini":
@@ -174,54 +359,61 @@ async def update_models_route(request):
                     and 'vision' not in m.get('name', '')
                     and m['name'].replace('models/', '').startswith('gemini')
                 ]
-        
         else:
             api_base = "https://api.openai.com/v1"
-            if platform == "DeepSeek": api_base = "https://api.deepseek.com"
-            elif platform == "Mistral": api_base = "https://api.mistral.ai/v1"
-            elif platform == "Grok": api_base = "https://api.x.ai/v1"
+            if platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
+            elif platform == "BigModel": api_base = "https://open.bigmodel.cn/api/paas/v4"
+            elif platform == "Groq": api_base = "https://api.groq.com/openai/v1"
+            elif platform == "GitHub": api_base = "https://models.inference.ai.azure.com"
+            elif platform == "SambaNova": api_base = "https://api.sambanova.ai/v1"
             elif platform == "OpenRouter": api_base = "https://openrouter.ai/api/v1"
-            elif platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
-            elif platform == "TogetherAI": api_base = "https://api.together.xyz/v1"
-            elif platform == "Custom": api_base = base_url
+            elif platform == "LongCat": api_base = "https://api.longcat.cn/v1"
+            elif platform == "DeepSeek": api_base = "https://api.deepseek.com"
+            elif platform == "OpenAI": api_base = base_url
+            elif platform == "Ollama": api_base = base_url
             
             url = f"{api_base}/models"
-            req = urllib.request.Request(url, headers={'Authorization': f'Bearer {api_key}'})
-            with urllib.request.urlopen(req) as response:
-                resp_data = json.loads(response.read().decode('utf-8'))
-                data_list = resp_data.get('data', [])
-                
-                if platform == "OpenAI":
-                    models = [m['id'] for m in data_list if 'gpt-3.5' in m['id'] or 'gpt-4o-mini' in m['id']]
-                elif platform == "DeepSeek":
-                    models = [m['id'] for m in data_list if 'deepseek' in m['id']]
-                elif platform == "Mistral":
-                    models = [m['id'] for m in data_list if 'mistral' in m['id']]
-                elif platform == "Grok":
-                    models = [m['id'] for m in data_list if 'grok' in m['id']]
-                elif platform == "OpenRouter":
-                    models = [
-                        m['id'] for m in data_list
-                        if (str(m.get('pricing', {}).get('prompt', '1')) == '0' and str(m.get('pricing', {}).get('completion', '1')) == '0')
-                        or ':free' in m['id']
-                    ]
-                elif platform == "SiliconFlow":
-                    models = [m['id'] for m in data_list if 'free' in m['id'] or 'deepseek' in m['id']]
-                elif platform == "TogetherAI":
-                    models = [m['id'] for m in data_list if 'free' in m['id'] or 'meta' in m['id']]
-                elif platform == "Custom":
-                    models = [m['id'] for m in data_list]
+            if platform == "BigModel":
+                models = ["glm-4", "glm-4-air", "glm-4-flash", "glm-3-turbo"]
+            else:
+                req = urllib.request.Request(url, headers={'Authorization': f'Bearer {api_key}'})
+                with urllib.request.urlopen(req) as response:
+                    resp_data = json.loads(response.read().decode('utf-8'))
+                    if platform == "GitHub":
+                        data_list = resp_data
+                    else:
+                        data_list = resp_data.get('data', [])
+                    
+                    if platform == "SiliconFlow":
+                        models = [m['id'] for m in data_list if 'free' in m['id'] or 'deepseek' in m['id']]
+                    elif platform == "Groq":
+                        models = [m['id'] for m in data_list]
+                    elif platform == "GitHub":
+                        models = [m['name'] for m in data_list]
+                    elif platform == "SambaNova":
+                        models = [m['id'] for m in data_list]
+                    elif platform == "OpenRouter":
+                        models = [
+                            m['id'] for m in data_list
+                            if (str(m.get('pricing', {}).get('prompt', '1')) == '0' and str(m.get('pricing', {}).get('completion', '1')) == '0')
+                            or ':free' in m['id']
+                        ]
+                    elif platform == "LongCat":
+                        models = [m['id'] for m in data_list]
+                    elif platform == "DeepSeek":
+                        models = [m['id'] for m in data_list if 'deepseek' in m['id']]
+                    elif platform == "OpenAI" or platform == "Ollama":
+                        models = [m['id'] for m in data_list]
 
         if platform not in config:
             config[platform] = {}
         config[platform]["api_key"] = api_key
-        if platform == "Custom":
+        if platform == "Ollama" or platform == "OpenAI":
             config[platform]["base_url"] = base_url
         if custom_model:
             config[platform]["custom_model"] = custom_model
         config[platform]["models"] = models
         save_config(config)
-        
         return web.json_response({"models": models})
     except Exception as e:
         return web.json_response({"error": str(e)}, status=500)

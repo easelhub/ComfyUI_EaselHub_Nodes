@@ -21,7 +21,6 @@ class EHN_MathExpression:
                 "c": ("*", {"default": 0.0, "forceInput": True}),
             }
         }
-    
     RETURN_TYPES = ("INT", "FLOAT")
     RETURN_NAMES = ("int", "float")
     FUNCTION = "execute"
@@ -49,7 +48,6 @@ class EHN_NumberCompare:
                 "operation": (["a > b", "a < b", "a >= b", "a <= b", "a == b", "a != b"],),
             }
         }
-    
     RETURN_TYPES = ("BOOLEAN", "INT", "FLOAT")
     RETURN_NAMES = ("bool", "int", "float")
     FUNCTION = "execute"
@@ -65,5 +63,4 @@ class EHN_NumberCompare:
         elif operation == "a <= b": res = a <= b
         elif operation == "a == b": res = math.isclose(a, b)
         elif operation == "a != b": res = not math.isclose(a, b)
-        
         return (res, 1 if res else 0, 1.0 if res else 0.0)

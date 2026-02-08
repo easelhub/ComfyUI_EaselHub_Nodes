@@ -11,9 +11,7 @@ def process_mask_core(mask, invert, expansion, blur, fill_holes):
             m_bool = m[i] > 0.5
             m[i] = scipy.ndimage.binary_fill_holes(m_bool).astype(np.float32)
         mask = torch.from_numpy(m).to(device)
-    
     m_tensor = mask.unsqueeze(1)
-    
     if expansion != 0:
         val = abs(expansion)
         kernel_size = val * 2 + 1
@@ -23,7 +21,6 @@ def process_mask_core(mask, invert, expansion, blur, fill_holes):
             m_tensor = 1.0 - m_tensor
             m_tensor = F.max_pool2d(m_tensor, kernel_size=kernel_size, stride=1, padding=val)
             m_tensor = 1.0 - m_tensor
-
     if blur > 0:
         k_size = blur * 4 + 1
         x = torch.arange(k_size, device=device) - k_size // 2
@@ -32,12 +29,9 @@ def process_mask_core(mask, invert, expansion, blur, fill_holes):
         gx = gx / gx.sum()
         weights = (gx[:, None] * gx[None, :]).unsqueeze(0).unsqueeze(0)
         m_tensor = F.conv2d(m_tensor, weights, padding=k_size//2)
-
     m_tensor = m_tensor.squeeze(1)
-    
     if invert:
         m_tensor = 1.0 - m_tensor
-        
     return torch.clamp(m_tensor, 0.0, 1.0)
 
 class EHN_MaskProcessor:
@@ -46,10 +40,10 @@ class EHN_MaskProcessor:
         return {
             "required": {
                 "mask": ("MASK",),
-                "invert": ("BOOLEAN", {"default": False}),
+                "fill_holes": ("BOOLEAN", {"default": False}),
                 "expansion": ("INT", {"default": 0, "min": -128, "max": 128, "step": 1}),
                 "blur": ("INT", {"default": 0, "min": 0, "max": 64, "step": 1}),
-                "fill_holes": ("BOOLEAN", {"default": False}),
+                "invert": ("BOOLEAN", {"default": False}),
             }
         }
     RETURN_TYPES = ("MASK",)
@@ -57,5 +51,5 @@ class EHN_MaskProcessor:
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Mask"
 
-    def execute(self, mask, invert, expansion, blur, fill_holes):
+    def execute(self, mask, fill_holes, expansion, blur, invert):
         return (process_mask_core(mask, invert, expansion, blur, fill_holes),)

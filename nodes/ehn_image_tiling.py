@@ -68,29 +68,23 @@ class EHN_ImageMerger:
         device = images.device
         canvas = torch.zeros((B_out, H_orig, W_orig, C), device=device)
         weights = torch.zeros((B_out, H_orig, W_orig, C), device=device)
-        
         for idx in range(total_images):
             info_idx = idx % num_tiles
             batch_iter = idx // num_tiles
             b_orig_idx, y, x, h_act, w_act, _, _, _ = tile_info[info_idx]
             b_target = b_orig_idx + (batch_iter * B_orig)
-            
             tile = images[idx, :h_act, :w_act, :]
-            
             mask_h = torch.ones(h_act, device=device)
             if y > 0 and overlap > 0:
                 mask_h[:overlap] = torch.linspace(0, 1, overlap, device=device)
             if y + h_act < H_orig and overlap > 0:
                 mask_h[-overlap:] = torch.linspace(1, 0, overlap, device=device)
-                
             mask_w = torch.ones(w_act, device=device)
             if x > 0 and overlap > 0:
                 mask_w[:overlap] = torch.linspace(0, 1, overlap, device=device)
             if x + w_act < W_orig and overlap > 0:
                 mask_w[-overlap:] = torch.linspace(1, 0, overlap, device=device)
-            
             mask = (mask_h[:, None] * mask_w[None, :])[:, :, None]
             canvas[b_target, y:y+h_act, x:x+w_act, :] += tile * mask
             weights[b_target, y:y+h_act, x:x+w_act, :] += mask
-            
         return (canvas / (weights + 1e-8),)

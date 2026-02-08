@@ -9,7 +9,6 @@ class EHN_GetImageSize:
                 "side_choice": (["longest", "shortest"],),
             }
         }
-    
     RETURN_TYPES = ("INT", "INT", "INT")
     RETURN_NAMES = ("side_length", "width", "height")
     FUNCTION = "execute"

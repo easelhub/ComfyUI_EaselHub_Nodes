@@ -16,7 +16,6 @@ class EHN_SystemOptimizer:
                 "any_trigger": ("*",),
             }
         }
-    
     RETURN_TYPES = ("*",)
     RETURN_NAMES = ("trigger",)
     FUNCTION = "execute"
@@ -26,9 +25,7 @@ class EHN_SystemOptimizer:
         gc.collect()
         if COMFY_AVAILABLE:
             comfy.model_management.soft_empty_cache()
-            
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()
-            
         return (any_trigger,)

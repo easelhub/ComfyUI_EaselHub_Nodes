@@ -21,7 +21,6 @@ class EHN_ImageComparison:
     def execute(self, image_a, image_b):
         img1 = image_a[0]
         img2 = image_b[0]
-        
         results = []
         for i, (img, suffix) in enumerate([(img1, "a"), (img2, "b")]):
             arr = 255. * img.cpu().numpy()
@@ -30,5 +29,4 @@ class EHN_ImageComparison:
             file_path = os.path.join(self.output_dir, filename)
             img_pil.save(file_path)
             results.append({"filename": filename, "subfolder": "", "type": self.type})
-            
         return {"ui": {"ehn_comparison_images": results}}
