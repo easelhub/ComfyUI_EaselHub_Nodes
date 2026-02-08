@@ -7,8 +7,10 @@ from .nodes.ehn_system_utils import EHN_SystemOptimizer
 from .nodes.ehn_image_comparison import EHN_ImageComparison
 from .nodes.ehn_text_ops import EHN_PromptList
 from .nodes.ehn_ai_generator import EHN_AIGenerator, EHN_OpenAIGenerator, EHN_OllamaGenerator
+from .nodes.ehn_image_loader import EHN_ImageLoader
 
 NODE_CLASS_MAPPINGS = {
+    "EHN_ImageLoader": EHN_ImageLoader,
     "EHN_ImageTiler": EHN_ImageTiler,
     "EHN_ImageMerger": EHN_ImageMerger,
     "EHN_ImageResize": EHN_ImageResize,
@@ -37,7 +39,8 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_PromptList": "📝EHN Prompt List",
     "EHN_AIGenerator": "🤖EHN AI Generator",
     "EHN_OpenAIGenerator": "🤖EHN OpenAI Generator",
-    "EHN_OllamaGenerator": "🤖EHN Ollama Generator"
+    "EHN_OllamaGenerator": "🤖EHN Ollama Generator",
+    "EHN_ImageLoader": "📂EHN Image Loader",
 }
 
 WEB_DIRECTORY = "./web"
