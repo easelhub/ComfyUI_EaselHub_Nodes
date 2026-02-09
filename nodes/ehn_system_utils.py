@@ -1,21 +1,10 @@
 import torch
 import gc
 
-try:
-    import comfy.model_management
-    COMFY_AVAILABLE = True
-except ImportError:
-    COMFY_AVAILABLE = False
-
 class EHN_SystemOptimizer:
     @classmethod
     def INPUT_TYPES(s):
-        return {
-            "required": {},
-            "optional": {
-                "any_trigger": ("*",),
-            }
-        }
+        return {"required": {}, "optional": {"any_trigger": ("*",)}}
     RETURN_TYPES = ("*",)
     RETURN_NAMES = ("trigger",)
     FUNCTION = "execute"
@@ -23,8 +12,10 @@ class EHN_SystemOptimizer:
 
     def execute(self, any_trigger=None):
         gc.collect()
-        if COMFY_AVAILABLE:
+        try:
+            import comfy.model_management
             comfy.model_management.soft_empty_cache()
+        except: pass
         if torch.cuda.is_available():
             torch.cuda.empty_cache()
             torch.cuda.ipc_collect()

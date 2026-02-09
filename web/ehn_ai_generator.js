@@ -29,42 +29,24 @@ app.registerExtension({
                                 }
                             }
                         }
-                    } catch (e) {
-                        console.error("Failed to fetch config", e);
-                    }
+                    } catch (e) {}
                 };
-                setTimeout(() => {
-                    updateModels(platformWidget.value);
-                }, 100);
-                platformWidget.callback = (value) => {
-                    updateModels(value);
-                };
+                setTimeout(() => updateModels(platformWidget.value), 100);
+                platformWidget.callback = (value) => updateModels(value);
                 this.addWidget("button", "Update Models", null, () => {
                     const platform = platformWidget.value;
                     const apiKey = apiKeyWidget.value;
-                    if (!platform || !apiKey) {
-                        alert("Please enter Platform and API Key first.");
-                        return;
-                    }
-                    api.fetchApi("/ehn/update_models", {
-                        method: "POST",
-                        body: JSON.stringify({ platform, api_key: apiKey }),
-                    }).then(async (resp) => {
+                    if (!platform || !apiKey) return alert("Please enter Platform and API Key first.");
+                    api.fetchApi("/ehn/update_models", { method: "POST", body: JSON.stringify({ platform, api_key: apiKey }) }).then(async (resp) => {
                         if (resp.ok) {
                             const data = await resp.json();
                             if (data.models && data.models.length > 0) {
                                 modelWidget.options.values = data.models;
                                 modelWidget.value = data.models[0];
                                 alert(`Updated ${data.models.length} models for ${platform}`);
-                            } else {
-                                alert("No models found.");
-                            }
-                        } else {
-                            alert("Failed to update models: " + resp.statusText);
-                        }
-                    }).catch(err => {
-                        alert("Error: " + err.message);
-                    });
+                            } else alert("No models found.");
+                        } else alert("Failed to update models: " + resp.statusText);
+                    }).catch(err => alert("Error: " + err.message));
                 });
             };
         } else if (nodeData.name === "EHN_OpenAIGenerator") {
@@ -91,43 +73,22 @@ app.registerExtension({
                                 }
                             }
                         }
-                    } catch (e) {
-                        console.error("Failed to fetch config", e);
-                    }
+                    } catch (e) {}
                 };
-                setTimeout(() => {
-                    updateModels();
-                }, 100);
-
+                setTimeout(() => updateModels(), 100);
                 this.addWidget("button", "Update Models", null, () => {
                     const apiKey = apiKeyWidget.value;
-                    const baseUrl = baseUrlWidget.value;
-                    const customModel = customModelWidget.value;
-                    
-                    if (!apiKey) {
-                        alert("Please enter API Key first.");
-                        return;
-                    }
-                    
-                    api.fetchApi("/ehn/update_models", {
-                        method: "POST",
-                        body: JSON.stringify({ platform: "OpenAI", api_key: apiKey, base_url: baseUrl, custom_model: customModel }),
-                    }).then(async (resp) => {
+                    if (!apiKey) return alert("Please enter API Key first.");
+                    api.fetchApi("/ehn/update_models", { method: "POST", body: JSON.stringify({ platform: "OpenAI", api_key: apiKey, base_url: baseUrlWidget.value, custom_model: customModelWidget.value }) }).then(async (resp) => {
                         if (resp.ok) {
                             const data = await resp.json();
                             if (data.models && data.models.length > 0) {
                                 modelWidget.options.values = data.models;
                                 modelWidget.value = data.models[0];
                                 alert(`Updated ${data.models.length} models for OpenAI`);
-                            } else {
-                                alert("No models found.");
-                            }
-                        } else {
-                            alert("Failed to update models: " + resp.statusText);
-                        }
-                    }).catch(err => {
-                        alert("Error: " + err.message);
-                    });
+                            } else alert("No models found.");
+                        } else alert("Failed to update models: " + resp.statusText);
+                    }).catch(err => alert("Error: " + err.message));
                 });
             };
         } else if (nodeData.name === "EHN_OllamaGenerator") {
@@ -152,37 +113,20 @@ app.registerExtension({
                                 }
                             }
                         }
-                    } catch (e) {
-                        console.error("Failed to fetch config", e);
-                    }
+                    } catch (e) {}
                 };
-                setTimeout(() => {
-                    updateModels();
-                }, 100);
-
+                setTimeout(() => updateModels(), 100);
                 this.addWidget("button", "Update Models", null, () => {
-                    const baseUrl = baseUrlWidget.value;
-                    const customModel = customModelWidget.value;
-                    
-                    api.fetchApi("/ehn/update_models", {
-                        method: "POST",
-                        body: JSON.stringify({ platform: "Ollama", base_url: baseUrl, custom_model: customModel }),
-                    }).then(async (resp) => {
+                    api.fetchApi("/ehn/update_models", { method: "POST", body: JSON.stringify({ platform: "Ollama", base_url: baseUrlWidget.value, custom_model: customModelWidget.value }) }).then(async (resp) => {
                         if (resp.ok) {
                             const data = await resp.json();
                             if (data.models && data.models.length > 0) {
                                 modelWidget.options.values = data.models;
                                 modelWidget.value = data.models[0];
                                 alert(`Updated ${data.models.length} models for Ollama`);
-                            } else {
-                                alert("No models found.");
-                            }
-                        } else {
-                            alert("Failed to update models: " + resp.statusText);
-                        }
-                    }).catch(err => {
-                        alert("Error: " + err.message);
-                    });
+                            } else alert("No models found.");
+                        } else alert("Failed to update models: " + resp.statusText);
+                    }).catch(err => alert("Error: " + err.message));
                 });
             };
         }

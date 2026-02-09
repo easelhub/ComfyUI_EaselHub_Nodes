@@ -12,37 +12,20 @@ class EHN_ImageTiler:
 
     def execute(self, image, tile_size, overlap):
         B, H, W, C = image.shape
-        tiles = []
-        info = []
-        step = tile_size - overlap
-        if step <= 0: step = 1
+        tiles, info = [], []
+        step = max(1, tile_size - overlap)
         for b in range(B):
-            y_starts = []
-            y = 0
-            while y < H:
-                y_starts.append(y)
-                if y + tile_size >= H: break
-                y += step
+            y_starts = list(range(0, H, step))
             if y_starts[-1] + tile_size > H: y_starts[-1] = max(0, H - tile_size)
-            x_starts = []
-            x = 0
-            while x < W:
-                x_starts.append(x)
-                if x + tile_size >= W: break
-                x += step
+            x_starts = list(range(0, W, step))
             if x_starts[-1] + tile_size > W: x_starts[-1] = max(0, W - tile_size)
+            
             for y in y_starts:
                 for x in x_starts:
-                    h_end = min(y + tile_size, H)
-                    w_end = min(x + tile_size, W)
-                    crop = image[b, y:h_end, x:w_end, :]
-                    h_act, w_act = crop.shape[:2]
-                    pad_h = tile_size - h_act
-                    pad_w = tile_size - w_act
-                    if pad_h > 0 or pad_w > 0:
-                        crop = crop.permute(2, 0, 1).unsqueeze(0)
-                        crop = F.pad(crop, (0, pad_w, 0, pad_h), mode='reflect')
-                        crop = crop.squeeze(0).permute(1, 2, 0)
+                    h_act, w_act = min(y + tile_size, H) - y, min(x + tile_size, W) - x
+                    crop = image[b, y:y+h_act, x:x+w_act, :]
+                    if h_act < tile_size or w_act < tile_size:
+                        crop = F.pad(crop.permute(2, 0, 1).unsqueeze(0), (0, tile_size - w_act, 0, tile_size - h_act), mode='reflect').squeeze(0).permute(1, 2, 0)
                     tiles.append(crop)
                     info.append((b, y, x, h_act, w_act, H, W, overlap))
         return (torch.stack(tiles), info)
@@ -57,34 +40,29 @@ class EHN_ImageMerger:
 
     def execute(self, images, tile_info):
         num_tiles = len(tile_info)
-        total_images = images.shape[0]
-        if total_images % num_tiles != 0:
-            raise ValueError(f"Image count {total_images} mismatch tile info {num_tiles}")
-        batch_factor = total_images // num_tiles
-        B_orig = max(t[0] for t in tile_info) + 1
-        H_orig, W_orig, overlap = tile_info[0][5], tile_info[0][6], tile_info[0][7]
-        B_out = B_orig * batch_factor
-        C = images.shape[-1]
-        device = images.device
-        canvas = torch.zeros((B_out, H_orig, W_orig, C), device=device)
-        weights = torch.zeros((B_out, H_orig, W_orig, C), device=device)
-        for idx in range(total_images):
-            info_idx = idx % num_tiles
-            batch_iter = idx // num_tiles
-            b_orig_idx, y, x, h_act, w_act, _, _, _ = tile_info[info_idx]
-            b_target = b_orig_idx + (batch_iter * B_orig)
+        if images.shape[0] % num_tiles != 0: raise ValueError("Image count mismatch")
+        B_orig, H_orig, W_orig, overlap = max(t[0] for t in tile_info) + 1, tile_info[0][5], tile_info[0][6], tile_info[0][7]
+        B_out = B_orig * (images.shape[0] // num_tiles)
+        canvas = torch.zeros((B_out, H_orig, W_orig, images.shape[-1]), device=images.device)
+        weights = torch.zeros_like(canvas)
+        
+        for idx in range(images.shape[0]):
+            b_orig_idx, y, x, h_act, w_act, _, _, _ = tile_info[idx % num_tiles]
+            b_target = b_orig_idx + ((idx // num_tiles) * B_orig)
             tile = images[idx, :h_act, :w_act, :]
-            mask_h = torch.ones(h_act, device=device)
-            if y > 0 and overlap > 0:
-                mask_h[:overlap] = torch.linspace(0, 1, overlap, device=device)
-            if y + h_act < H_orig and overlap > 0:
-                mask_h[-overlap:] = torch.linspace(1, 0, overlap, device=device)
-            mask_w = torch.ones(w_act, device=device)
-            if x > 0 and overlap > 0:
-                mask_w[:overlap] = torch.linspace(0, 1, overlap, device=device)
-            if x + w_act < W_orig and overlap > 0:
-                mask_w[-overlap:] = torch.linspace(1, 0, overlap, device=device)
+            
+            mask_h = torch.ones(h_act, device=images.device)
+            if overlap > 0:
+                if y > 0: mask_h[:overlap] = torch.linspace(0, 1, overlap, device=images.device)
+                if y + h_act < H_orig: mask_h[-overlap:] = torch.linspace(1, 0, overlap, device=images.device)
+            
+            mask_w = torch.ones(w_act, device=images.device)
+            if overlap > 0:
+                if x > 0: mask_w[:overlap] = torch.linspace(0, 1, overlap, device=images.device)
+                if x + w_act < W_orig: mask_w[-overlap:] = torch.linspace(1, 0, overlap, device=images.device)
+                
             mask = (mask_h[:, None] * mask_w[None, :])[:, :, None]
             canvas[b_target, y:y+h_act, x:x+w_act, :] += tile * mask
             weights[b_target, y:y+h_act, x:x+w_act, :] += mask
+            
         return (canvas / (weights + 1e-8),)
