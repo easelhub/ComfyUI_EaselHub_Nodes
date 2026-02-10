@@ -43,8 +43,7 @@ class EHN_PromptMix:
 
     def run(self, text_a, separator, text_b="", replace_rules=""):
         result = text_a
-        if text_b:
-            result = f"{text_a}{separator} {text_b}" if text_a else text_b
+        if text_b: result = f"{text_a}{separator} {text_b}" if text_a else text_b
         if replace_rules:
             for line in replace_rules.splitlines():
                 if "|" in line:

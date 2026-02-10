@@ -48,15 +48,12 @@ Awaiting user input. I am ready to transmute."""
 def load_config():
     if os.path.exists(CONFIG_PATH):
         try:
-            with open(CONFIG_PATH, 'r', encoding='utf-8') as f:
-                return json.load(f)
-        except:
-            return {}
+            with open(CONFIG_PATH, 'r', encoding='utf-8') as f: return json.load(f)
+        except: return {}
     return {}
 
 def save_config(data):
-    with open(CONFIG_PATH, 'w', encoding='utf-8') as f:
-        json.dump(data, f, indent=4)
+    with open(CONFIG_PATH, 'w', encoding='utf-8') as f: json.dump(data, f, indent=4)
 
 class EHN_AIGenerator:
     @classmethod
@@ -65,10 +62,8 @@ class EHN_AIGenerator:
         platforms = ["SiliconFlow", "BigModel", "DeepSeek", "LongCat", "Gemini", "Groq", "GitHub", "SambaNova", "OpenRouter", "Cloudflare", "NVIDIA"]
         models = []
         default_platform = platforms[0]
-        if default_platform in config and "models" in config[default_platform]:
-            models = config[default_platform]["models"]
-        if not models:
-            models = ["gpt-3.5-turbo", "gemini-1.5-flash"]
+        if default_platform in config and "models" in config[default_platform]: models = config[default_platform]["models"]
+        if not models: models = ["gpt-3.5-turbo", "gemini-1.5-flash"]
         return {
             "required": {
                 "platform": (platforms,),
@@ -82,35 +77,29 @@ class EHN_AIGenerator:
                 "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
-
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("English Prompt", "Chinese Prompt")
     FUNCTION = "generate"
     CATEGORY = "EaselHub Nodes/AI"
 
     @classmethod
-    def VALIDATE_INPUTS(s, **kwargs):
-        return True
+    def VALIDATE_INPUTS(s, **kwargs): return True
 
     def generate(self, platform, api_key, model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
-        if not api_key and platform in config:
-            api_key = config[platform].get("api_key", "")
-        if not api_key:
-            return ("Error: API Key missing", "Error: API Key missing")
+        if not api_key and platform in config: api_key = config[platform].get("api_key", "")
+        if not api_key: return ("Error: API Key missing", "Error: API Key missing")
         
         sys_prompt = SYSTEM_PROMPT
         if system_prompt_file and os.path.exists(system_prompt_file):
             try:
-                with open(system_prompt_file, 'r', encoding='utf-8') as f:
-                    sys_prompt = f.read()
+                with open(system_prompt_file, 'r', encoding='utf-8') as f: sys_prompt = f.read()
             except: pass
 
         full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         result_text = ""
         try:
-            if platform == "Gemini":
-                result_text = self.call_gemini(api_key, model, full_prompt)
+            if platform == "Gemini": result_text = self.call_gemini(api_key, model, full_prompt)
             else:
                 api_base = "https://api.openai.com/v1"
                 if platform == "SiliconFlow": api_base = "https://api.siliconflow.cn/v1"
@@ -127,24 +116,19 @@ class EHN_AIGenerator:
                          acc_id, token = api_key.split(":", 1)
                          api_base = f"https://api.cloudflare.com/client/v4/accounts/{acc_id}/ai/v1"
                          api_key = token
-                     else:
-                         return ("Error: Cloudflare Key format ACCOUNT_ID:API_TOKEN", "Error: Cloudflare Key format ACCOUNT_ID:API_TOKEN")
+                     else: return ("Error: Cloudflare Key format ACCOUNT_ID:API_TOKEN", "Error: Cloudflare Key format ACCOUNT_ID:API_TOKEN")
                 result_text = self.call_openai_compatible(api_base, api_key, model, full_prompt)
-        except Exception as e:
-            return (f"Error: {str(e)}", f"Error: {str(e)}")
+        except Exception as e: return (f"Error: {str(e)}", f"Error: {str(e)}")
         
         return self.parse_result(result_text, additional_prompt)
 
     def parse_result(self, result_text, additional_prompt=""):
-        english_prompt = ""
-        chinese_prompt = ""
+        english_prompt, chinese_prompt = "", ""
         if "---ENGLISH START---" in result_text and "---ENGLISH END---" in result_text:
             english_prompt = result_text.split("---ENGLISH START---")[1].split("---ENGLISH END---")[0].strip()
         if "---CHINESE START---" in result_text and "---CHINESE END---" in result_text:
             chinese_prompt = result_text.split("---CHINESE START---")[1].split("---CHINESE END---")[0].strip()
-        if not english_prompt and not chinese_prompt:
-             english_prompt = result_text
-             chinese_prompt = result_text
+        if not english_prompt and not chinese_prompt: english_prompt = chinese_prompt = result_text
         english_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", english_prompt).strip()
         chinese_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", chinese_prompt).strip()
         
@@ -179,10 +163,8 @@ class EHN_OpenAIGenerator:
     def INPUT_TYPES(s):
         config = load_config()
         models = []
-        if "OpenAI" in config and "models" in config["OpenAI"]:
-            models = config["OpenAI"]["models"]
-        if not models:
-            models = ["gpt-3.5-turbo", "gpt-4o"]
+        if "OpenAI" in config and "models" in config["OpenAI"]: models = config["OpenAI"]["models"]
+        if not models: models = ["gpt-3.5-turbo", "gpt-4o"]
         return {
             "required": {
                 "api_key": ("STRING", {"multiline": False}),
@@ -197,38 +179,31 @@ class EHN_OpenAIGenerator:
                 "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
-
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("English Prompt", "Chinese Prompt")
     FUNCTION = "generate"
     CATEGORY = "EaselHub Nodes/AI"
 
     @classmethod
-    def VALIDATE_INPUTS(s, **kwargs):
-        return True
+    def VALIDATE_INPUTS(s, **kwargs): return True
 
     def generate(self, api_key, base_url, model, custom_model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
-        if not api_key and "OpenAI" in config:
-            api_key = config["OpenAI"].get("api_key", "")
-        if not api_key:
-            return ("Error: API Key missing", "Error: API Key missing")
-        if custom_model:
-            model = custom_model
+        if not api_key and "OpenAI" in config: api_key = config["OpenAI"].get("api_key", "")
+        if not api_key: return ("Error: API Key missing", "Error: API Key missing")
+        if custom_model: model = custom_model
             
         sys_prompt = SYSTEM_PROMPT
         if system_prompt_file and os.path.exists(system_prompt_file):
             try:
-                with open(system_prompt_file, 'r', encoding='utf-8') as f:
-                    sys_prompt = f.read()
+                with open(system_prompt_file, 'r', encoding='utf-8') as f: sys_prompt = f.read()
             except: pass
             
         full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         try:
             result_text = self.call_openai_compatible(base_url, api_key, model, full_prompt)
             return EHN_AIGenerator().parse_result(result_text, additional_prompt)
-        except Exception as e:
-            return (f"Error: {str(e)}", f"Error: {str(e)}")
+        except Exception as e: return (f"Error: {str(e)}", f"Error: {str(e)}")
 
     def call_openai_compatible(self, base_url, api_key, model, text):
         return EHN_AIGenerator().call_openai_compatible(base_url, api_key, model, text)
@@ -238,10 +213,8 @@ class EHN_OllamaGenerator:
     def INPUT_TYPES(s):
         config = load_config()
         models = []
-        if "Ollama" in config and "models" in config["Ollama"]:
-            models = config["Ollama"]["models"]
-        if not models:
-            models = ["llama3"]
+        if "Ollama" in config and "models" in config["Ollama"]: models = config["Ollama"]["models"]
+        if not models: models = ["llama3"]
         return {
             "required": {
                 "base_url": ("STRING", {"multiline": False, "default": "http://localhost:11434/v1"}),
@@ -255,38 +228,31 @@ class EHN_OllamaGenerator:
                 "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
-
     RETURN_TYPES = ("STRING", "STRING")
     RETURN_NAMES = ("English Prompt", "Chinese Prompt")
     FUNCTION = "generate"
     CATEGORY = "EaselHub Nodes/AI"
 
     @classmethod
-    def VALIDATE_INPUTS(s, **kwargs):
-        return True
+    def VALIDATE_INPUTS(s, **kwargs): return True
 
     def generate(self, base_url, model, custom_model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
-        if not base_url and "Ollama" in config:
-            base_url = config["Ollama"].get("base_url", "http://localhost:11434/v1")
-        if not base_url:
-            base_url = "http://localhost:11434/v1"
-        if custom_model:
-            model = custom_model
+        if not base_url and "Ollama" in config: base_url = config["Ollama"].get("base_url", "http://localhost:11434/v1")
+        if not base_url: base_url = "http://localhost:11434/v1"
+        if custom_model: model = custom_model
             
         sys_prompt = SYSTEM_PROMPT
         if system_prompt_file and os.path.exists(system_prompt_file):
             try:
-                with open(system_prompt_file, 'r', encoding='utf-8') as f:
-                    sys_prompt = f.read()
+                with open(system_prompt_file, 'r', encoding='utf-8') as f: sys_prompt = f.read()
             except: pass
             
         full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         try:
             result_text = self.call_openai_compatible(base_url, "ollama", model, full_prompt)
             return EHN_AIGenerator().parse_result(result_text, additional_prompt)
-        except Exception as e:
-            return (f"Error: {str(e)}", f"Error: {str(e)}")
+        except Exception as e: return (f"Error: {str(e)}", f"Error: {str(e)}")
 
     def call_openai_compatible(self, base_url, api_key, model, text):
         return EHN_AIGenerator().call_openai_compatible(base_url, api_key, model, text)
@@ -310,8 +276,7 @@ async def update_models_route(request):
     else:
         if not api_key and platform in config: api_key = config[platform].get("api_key", "")
 
-    if not platform or (platform != "Ollama" and not api_key):
-        return web.json_response({"error": "Missing platform or api_key"}, status=400)
+    if not platform or (platform != "Ollama" and not api_key): return web.json_response({"error": "Missing platform or api_key"}, status=400)
         
     models = []
     try:
@@ -336,16 +301,13 @@ async def update_models_route(request):
                      acc_id, token = api_key.split(":", 1)
                      api_base = f"https://api.cloudflare.com/client/v4/accounts/{acc_id}/ai/v1"
                      api_key = token
-                 else:
-                     api_base = "https://api.cloudflare.com/client/v4/accounts/PLACEHOLDER/ai/v1"
+                 else: api_base = "https://api.cloudflare.com/client/v4/accounts/PLACEHOLDER/ai/v1"
             elif platform == "OpenAI": api_base = base_url
             elif platform == "Ollama": api_base = base_url
             
             url = f"{api_base}/models"
-            if platform == "BigModel":
-                models = ["glm-4", "glm-4-air", "glm-4-flash", "glm-3-turbo"]
-            elif platform == "Cloudflare" and "PLACEHOLDER" in api_base:
-                 models = ["Error: API Key must be ACCOUNT_ID:API_TOKEN"]
+            if platform == "BigModel": models = ["glm-4", "glm-4-air", "glm-4-flash", "glm-3-turbo"]
+            elif platform == "Cloudflare" and "PLACEHOLDER" in api_base: models = ["Error: API Key must be ACCOUNT_ID:API_TOKEN"]
             else:
                 req = urllib.request.Request(url, headers={'Authorization': f'Bearer {api_key}'})
                 with urllib.request.urlopen(req) as response:
@@ -364,9 +326,7 @@ async def update_models_route(request):
         config[platform]["models"] = models
         save_config(config)
         return web.json_response({"models": models})
-    except Exception as e:
-        return web.json_response({"error": str(e)}, status=500)
+    except Exception as e: return web.json_response({"error": str(e)}, status=500)
 
 @PromptServer.instance.routes.post("/ehn/get_config")
-async def get_config_route(request):
-    return web.json_response(load_config())
+async def get_config_route(request): return web.json_response(load_config())

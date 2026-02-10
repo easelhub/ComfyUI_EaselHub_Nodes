@@ -1,0 +1,29 @@
+[project]
+name = "comfyui-easelhub-nodes"
+version = "1.0.0"
+description = "EaselHub Custom Nodes for ComfyUI"
+readme = "README.md"
+authors = [
+    { name = "EaselHub", email = "support@easelhub.com" }
+]
+license = { file = "LICENSE" }
+dependencies = [
+    "torch",
+    "numpy",
+    "Pillow",
+    "aiohttp",
+    "scipy",
+    "pandas",
+    "modelscope",
+    "onnxruntime-gpu",
+    "transformers"
+]
+dynamic = ["version"]
+
+[project.urls]
+Repository = "https://github.com/EaselHub/ComfyUI_EaselHub_Nodes"
+
+[tool.comfy]
+PublisherId = "easelhub"
+DisplayName = "EaselHub Nodes"
+Icon = ""

@@ -23,7 +23,6 @@ class EHN_WD14Tagger:
                 "exclude_tags": ("STRING", {"default": ""}),
             }
         }
-
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("tags",)
     FUNCTION = "tag"

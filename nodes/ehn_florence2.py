@@ -24,7 +24,6 @@ class EHN_Florence2PromptGen:
                 "repetition_penalty": ("FLOAT", {"default": 1.05, "min": 0.1, "max": 10.0, "step": 0.01}),
             }
         }
-
     RETURN_TYPES = ("STRING",)
     RETURN_NAMES = ("text",)
     FUNCTION = "generate"
@@ -34,8 +33,7 @@ class EHN_Florence2PromptGen:
         model_id = f"cutemodel/{model_version}"
         models_dir = os.path.join(folder_paths.models_dir, "Florence-2")
         model_path = os.path.join(models_dir, model_version)
-        if not os.path.exists(model_path):
-            snapshot_download(model_id, cache_dir=models_dir, local_dir=model_path)
+        if not os.path.exists(model_path): snapshot_download(model_id, cache_dir=models_dir, local_dir=model_path)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.float16 if device == "cuda" else torch.float32
         if self.model is None or self.current_model_path != model_path:

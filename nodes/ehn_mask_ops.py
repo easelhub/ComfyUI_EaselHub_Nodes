@@ -7,8 +7,7 @@ def process_mask_core(mask, invert, expansion, blur, fill_holes):
     device = mask.device
     if fill_holes:
         m = mask.cpu().numpy()
-        for i in range(m.shape[0]):
-            m[i] = scipy.ndimage.binary_fill_holes(m[i] > 0.5).astype(np.float32)
+        for i in range(m.shape[0]): m[i] = scipy.ndimage.binary_fill_holes(m[i] > 0.5).astype(np.float32)
         mask = torch.from_numpy(m).to(device)
     m_tensor = mask.unsqueeze(1)
     if expansion != 0:
