@@ -33,7 +33,7 @@ class EHN_NumberCompare:
             "required": {
                 "a": ("*",),
                 "b": ("*",),
-                "operator": (["==", "!=", ">", "<", ">=", "<="], {"default": "=="}),
+                "operator": (["a == b", "a != b", "a > b", "a < b", "a >= b", "a <= b"], {"default": "a == b"}),
             }
         }
     RETURN_TYPES = ("BOOLEAN",)
