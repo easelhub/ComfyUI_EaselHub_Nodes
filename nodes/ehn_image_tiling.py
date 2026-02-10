@@ -4,20 +4,38 @@ import torch.nn.functional as F
 class EHN_ImageTiler:
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"image": ("IMAGE",), "tile_size": ("INT", {"default": 512, "min": 64, "max": 8192, "step": 64}), "overlap": ("INT", {"default": 64, "min": 0, "max": 512, "step": 8})}}
+        return {
+            "required": {
+                "image": ("IMAGE",),
+                "tile_size": ("INT", {"default": 1024, "min": 64, "max": 8192, "step": 64}),
+            }
+        }
     RETURN_TYPES = ("IMAGE", "EHN_TILE_INFO")
     RETURN_NAMES = ("tiles", "tile_info")
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Image"
 
-    def execute(self, image, tile_size, overlap):
+    def execute(self, image, tile_size):
         B, H, W, C = image.shape
         tiles, info = [], []
-        step = max(1, tile_size - overlap)
+        overlap = tile_size // 4
+        step = tile_size - overlap
+        
         for b in range(B):
-            y_starts = list(range(0, H, step))
+            y_starts = []
+            y = 0
+            while y < H:
+                y_starts.append(y)
+                if y + tile_size >= H: break
+                y += step
             if y_starts[-1] + tile_size > H: y_starts[-1] = max(0, H - tile_size)
-            x_starts = list(range(0, W, step))
+            
+            x_starts = []
+            x = 0
+            while x < W:
+                x_starts.append(x)
+                if x + tile_size >= W: break
+                x += step
             if x_starts[-1] + tile_size > W: x_starts[-1] = max(0, W - tile_size)
             
             for y in y_starts:

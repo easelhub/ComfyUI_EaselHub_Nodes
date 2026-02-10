@@ -76,6 +76,10 @@ class EHN_AIGenerator:
                 "model": (models,),
                 "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "system_prompt_file": ("STRING", {"default": ""}),
+                "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
 
@@ -88,14 +92,21 @@ class EHN_AIGenerator:
     def VALIDATE_INPUTS(s, **kwargs):
         return True
 
-    def generate(self, platform, api_key, model, prompt, seed):
+    def generate(self, platform, api_key, model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
         if not api_key and platform in config:
             api_key = config[platform].get("api_key", "")
         if not api_key:
             return ("Error: API Key missing", "Error: API Key missing")
         
-        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
+        sys_prompt = SYSTEM_PROMPT
+        if system_prompt_file and os.path.exists(system_prompt_file):
+            try:
+                with open(system_prompt_file, 'r', encoding='utf-8') as f:
+                    sys_prompt = f.read()
+            except: pass
+
+        full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         result_text = ""
         try:
             if platform == "Gemini":
@@ -122,9 +133,9 @@ class EHN_AIGenerator:
         except Exception as e:
             return (f"Error: {str(e)}", f"Error: {str(e)}")
         
-        return self.parse_result(result_text)
+        return self.parse_result(result_text, additional_prompt)
 
-    def parse_result(self, result_text):
+    def parse_result(self, result_text, additional_prompt=""):
         english_prompt = ""
         chinese_prompt = ""
         if "---ENGLISH START---" in result_text and "---ENGLISH END---" in result_text:
@@ -136,6 +147,11 @@ class EHN_AIGenerator:
              chinese_prompt = result_text
         english_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", english_prompt).strip()
         chinese_prompt = re.sub(r"(?i)/imagine\s+prompt:", "", chinese_prompt).strip()
+        
+        if additional_prompt:
+            english_prompt = f"{english_prompt}, {additional_prompt}" if english_prompt else additional_prompt
+            chinese_prompt = f"{chinese_prompt}, {additional_prompt}" if chinese_prompt else additional_prompt
+            
         return (english_prompt, chinese_prompt)
 
     def call_gemini(self, api_key, model, text):
@@ -175,6 +191,10 @@ class EHN_OpenAIGenerator:
                 "custom_model": ("STRING", {"multiline": False, "default": ""}),
                 "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "system_prompt_file": ("STRING", {"default": ""}),
+                "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
 
@@ -187,7 +207,7 @@ class EHN_OpenAIGenerator:
     def VALIDATE_INPUTS(s, **kwargs):
         return True
 
-    def generate(self, api_key, base_url, model, custom_model, prompt, seed):
+    def generate(self, api_key, base_url, model, custom_model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
         if not api_key and "OpenAI" in config:
             api_key = config["OpenAI"].get("api_key", "")
@@ -195,10 +215,18 @@ class EHN_OpenAIGenerator:
             return ("Error: API Key missing", "Error: API Key missing")
         if custom_model:
             model = custom_model
-        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
+            
+        sys_prompt = SYSTEM_PROMPT
+        if system_prompt_file and os.path.exists(system_prompt_file):
+            try:
+                with open(system_prompt_file, 'r', encoding='utf-8') as f:
+                    sys_prompt = f.read()
+            except: pass
+            
+        full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         try:
             result_text = self.call_openai_compatible(base_url, api_key, model, full_prompt)
-            return EHN_AIGenerator().parse_result(result_text)
+            return EHN_AIGenerator().parse_result(result_text, additional_prompt)
         except Exception as e:
             return (f"Error: {str(e)}", f"Error: {str(e)}")
 
@@ -221,6 +249,10 @@ class EHN_OllamaGenerator:
                 "custom_model": ("STRING", {"multiline": False, "default": ""}),
                 "prompt": ("STRING", {"multiline": True, "dynamicPrompts": True}),
                 "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+            },
+            "optional": {
+                "system_prompt_file": ("STRING", {"default": ""}),
+                "additional_prompt": ("STRING", {"multiline": True, "dynamicPrompts": True, "default": ""}),
             }
         }
 
@@ -233,7 +265,7 @@ class EHN_OllamaGenerator:
     def VALIDATE_INPUTS(s, **kwargs):
         return True
 
-    def generate(self, base_url, model, custom_model, prompt, seed):
+    def generate(self, base_url, model, custom_model, prompt, seed, system_prompt_file="", additional_prompt=""):
         config = load_config()
         if not base_url and "Ollama" in config:
             base_url = config["Ollama"].get("base_url", "http://localhost:11434/v1")
@@ -241,10 +273,18 @@ class EHN_OllamaGenerator:
             base_url = "http://localhost:11434/v1"
         if custom_model:
             model = custom_model
-        full_prompt = f"{SYSTEM_PROMPT}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
+            
+        sys_prompt = SYSTEM_PROMPT
+        if system_prompt_file and os.path.exists(system_prompt_file):
+            try:
+                with open(system_prompt_file, 'r', encoding='utf-8') as f:
+                    sys_prompt = f.read()
+            except: pass
+            
+        full_prompt = f"{sys_prompt}\n\nUser Request: {prompt}\n\n[IMPORTANT]\nProvide TWO outputs:\n1. English Prompt (Mode A/B/C as appropriate)\n2. Chinese Prompt (Translated/Adapted)\n\nFormat your response EXACTLY as follows:\n---ENGLISH START---\n[English Prompt Here]\n---ENGLISH END---\n---CHINESE START---\n[Chinese Prompt Here]\n---CHINESE END---\n\nDo NOT include '/imagine prompt:', any other text, explanations, or thoughts."
         try:
             result_text = self.call_openai_compatible(base_url, "ollama", model, full_prompt)
-            return EHN_AIGenerator().parse_result(result_text)
+            return EHN_AIGenerator().parse_result(result_text, additional_prompt)
         except Exception as e:
             return (f"Error: {str(e)}", f"Error: {str(e)}")
 

@@ -1,5 +1,5 @@
 scipy
 transformers==4.49.0
-timm
-einops
 modelscope
+onnxruntime-gpu
+pandas
