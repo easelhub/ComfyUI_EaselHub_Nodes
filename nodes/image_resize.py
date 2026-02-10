@@ -102,7 +102,6 @@ class EHN_ImageResize:
             m = mask.unsqueeze(1)
             kernel_size = abs(mask_grow) * 2 + 1
             padding = abs(mask_grow)
-            
             if mask_grow > 0:
                 m = F.max_pool2d(m, kernel_size, stride=1, padding=padding)
             else:
@@ -117,7 +116,6 @@ class EHN_ImageResize:
             k = k / k.sum()
             k = k.view(1, 1, -1, 1)
             ky = k.transpose(2, 3)
-            
             m = mask.unsqueeze(1)
             m = F.pad(m, (mask_blur, mask_blur, mask_blur, mask_blur), mode='replicate')
             m = F.conv2d(m, k, groups=1)

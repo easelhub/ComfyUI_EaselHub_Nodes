@@ -1,0 +1,64 @@
+import torch
+import torch.nn.functional as F
+import numpy as np
+import cv2
+
+class EHN_MaskProcess:
+    @classmethod
+    def INPUT_TYPES(s):
+        return {
+            "required": {
+                "mask": ("MASK",),
+                "blur": ("INT", {"default": 0, "min": 0, "max": 512, "step": 1}),
+                "grow": ("INT", {"default": 0, "min": -512, "max": 512, "step": 1}),
+                "invert": ("BOOLEAN", {"default": False}),
+                "fill_holes": ("BOOLEAN", {"default": False}),
+            }
+        }
+
+    RETURN_TYPES = ("MASK",)
+    RETURN_NAMES = ("mask",)
+    FUNCTION = "execute"
+    CATEGORY = "EaselHub/Mask"
+
+    def execute(self, mask, blur, grow, invert, fill_holes):
+        if len(mask.shape) == 2: mask = mask.unsqueeze(0)
+
+        if fill_holes:
+            mask_np = mask.cpu().numpy()
+            for i in range(mask_np.shape[0]):
+                m = (mask_np[i] * 255).astype(np.uint8)
+                contours, _ = cv2.findContours(m, cv2.RETR_EXTERNAL, cv2.CHAIN_APPROX_SIMPLE)
+                filled = np.zeros_like(m)
+                cv2.drawContours(filled, contours, -1, 255, -1)
+                mask_np[i] = filled.astype(np.float32) / 255.0
+            mask = torch.from_numpy(mask_np).to(mask.device)
+
+        if grow != 0:
+            m = mask.unsqueeze(1)
+            kernel_size = abs(grow) * 2 + 1
+            padding = abs(grow)
+            if grow > 0:
+                m = F.max_pool2d(m, kernel_size, stride=1, padding=padding)
+            else:
+                m = -F.max_pool2d(-m, kernel_size, stride=1, padding=padding)
+            mask = m.squeeze(1)
+
+        if blur > 0:
+            kernel_size = blur * 2 + 1
+            sigma = blur / 3.0
+            x = torch.arange(kernel_size, device=mask.device).float() - blur
+            k = torch.exp(-0.5 * (x / sigma) ** 2)
+            k = k / k.sum()
+            k = k.view(1, 1, -1, 1)
+            ky = k.transpose(2, 3)
+            m = mask.unsqueeze(1)
+            m = F.pad(m, (blur, blur, blur, blur), mode='replicate')
+            m = F.conv2d(m, k, groups=1)
+            m = F.conv2d(m, ky, groups=1)
+            mask = m.squeeze(1)
+
+        if invert:
+            mask = 1.0 - mask
+
+        return (mask,)
