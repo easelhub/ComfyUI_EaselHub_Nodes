@@ -9,9 +9,9 @@ class EHN_MathExpression:
                 "expression": ("STRING", {"multiline": False, "default": "a + b"}),
             },
             "optional": {
-                "a": ("FLOAT", {"default": 0.0, "step": 0.01, "forceInput": True}),
-                "b": ("FLOAT", {"default": 0.0, "step": 0.01, "forceInput": True}),
-                "c": ("FLOAT", {"default": 0.0, "step": 0.01, "forceInput": True}),
+                "a": ("*",),
+                "b": ("*",),
+                "c": ("*",),
             }
         }
     RETURN_TYPES = ("INT", "FLOAT")
@@ -31,8 +31,8 @@ class EHN_NumberCompare:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "a": ("FLOAT", {"default": 0.0, "step": 0.01, "forceInput": True}),
-                "b": ("FLOAT", {"default": 0.0, "step": 0.01, "forceInput": True}),
+                "a": ("*",),
+                "b": ("*",),
                 "operator": (["==", "!=", ">", "<", ">=", "<="], {"default": "=="}),
             }
         }
@@ -43,11 +43,11 @@ class EHN_NumberCompare:
 
     def execute(self, a, b, operator):
         ops = {
-            "==": lambda x, y: x == y,
-            "!=": lambda x, y: x != y,
-            ">": lambda x, y: x > y,
-            "<": lambda x, y: x < y,
-            ">=": lambda x, y: x >= y,
-            "<=": lambda x, y: x <= y
+            "a == b": lambda x, y: x == y,
+            "a != b": lambda x, y: x != y,
+            "a > b": lambda x, y: x > y,
+            "a < b": lambda x, y: x < y,
+            "a >= b": lambda x, y: x >= y,
+            "a <= b": lambda x, y: x <= y
         }
         return (ops[operator](a, b),)
