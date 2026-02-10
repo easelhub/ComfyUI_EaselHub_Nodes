@@ -32,12 +32,12 @@ class EHN_NumberCompare:
                 "operation": (["a > b", "a < b", "a >= b", "a <= b", "a == b", "a != b"],),
             }
         }
-    RETURN_TYPES = ("BOOLEAN", "INT", "FLOAT")
-    RETURN_NAMES = ("bool", "int", "float")
+    RETURN_TYPES = ("BOOLEAN",)
+    RETURN_NAMES = ("bool",)
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Number"
 
     def execute(self, a, b, operation):
         a, b = to_num(a), to_num(b)
         res = {"a > b": a > b, "a < b": a < b, "a >= b": a >= b, "a <= b": a <= b, "a == b": math.isclose(a, b), "a != b": not math.isclose(a, b)}.get(operation, False)
-        return (res, 1 if res else 0, 1.0 if res else 0.0)
+        return (res,)
