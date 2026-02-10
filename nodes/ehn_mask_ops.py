@@ -28,19 +28,10 @@ def process_mask_core(mask, invert, expansion, blur, fill_holes):
 class EHN_MaskProcessor:
     @classmethod
     def INPUT_TYPES(s):
-        return {
-            "required": {
-                "mask": ("MASK",),
-                "fill_holes": ("BOOLEAN", {"default": False}),
-                "expansion": ("INT", {"default": 0, "min": -128, "max": 128, "step": 1}),
-                "blur": ("INT", {"default": 0, "min": 0, "max": 64, "step": 1}),
-                "invert": ("BOOLEAN", {"default": False}),
-            }
-        }
+        return {"required": {"mask": ("MASK",), "fill_holes": ("BOOLEAN", {"default": False}), "expansion": ("INT", {"default": 0, "min": -128, "max": 128, "step": 1}), "blur": ("INT", {"default": 0, "min": 0, "max": 64, "step": 1}), "invert": ("BOOLEAN", {"default": False})}}
     RETURN_TYPES = ("MASK",)
     RETURN_NAMES = ("mask",)
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Mask"
-
     def execute(self, mask, fill_holes, expansion, blur, invert):
         return (process_mask_core(mask, invert, expansion, blur, fill_holes),)

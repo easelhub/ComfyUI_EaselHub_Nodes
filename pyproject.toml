@@ -1,0 +1,18 @@
+[project]
+name = "comfyui-easelhub-nodes"
+version = "1.0.0"
+description = "EaselHub Custom Nodes for ComfyUI"
+readme = "README.md"
+authors = [
+    { name = "EaselHub" }
+]
+dependencies = [
+    "torch",
+    "numpy",
+    "Pillow"
+]
+dynamic = ["version"]
+
+[tool.comfy]
+PublisherId = "easelhub"
+DisplayName = "EaselHub Nodes"

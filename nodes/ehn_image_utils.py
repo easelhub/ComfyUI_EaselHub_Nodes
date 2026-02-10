@@ -8,7 +8,6 @@ class EHN_GetImageSize:
     RETURN_NAMES = ("side_length", "width", "height")
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Utils"
-
     def execute(self, image, side_choice):
         _, H, W, _ = image.shape
         return (max(W, H) if side_choice == "longest" else min(W, H), W, H)

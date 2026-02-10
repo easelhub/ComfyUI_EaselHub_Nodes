@@ -1,7 +1,7 @@
 import { app } from "../../scripts/app.js";
 
 app.registerExtension({
-    name: "EaselHub.ImageComparison",
+    name: "EHN.ImageComparison",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "EHN_ImageComparison") {
             nodeType.prototype.onExecuted = function(message) {

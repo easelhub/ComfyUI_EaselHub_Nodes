@@ -11,7 +11,6 @@ app.registerExtension({
                 const platformWidget = this.widgets.find(w => w.name === "platform");
                 const apiKeyWidget = this.widgets.find(w => w.name === "api_key");
                 const modelWidget = this.widgets.find(w => w.name === "model");
-                
                 const updateModels = async (platform) => {
                     if (!platform) return;
                     apiKeyWidget.value = "";
@@ -57,7 +56,6 @@ app.registerExtension({
                 const baseUrlWidget = this.widgets.find(w => w.name === "base_url");
                 const modelWidget = this.widgets.find(w => w.name === "model");
                 const customModelWidget = this.widgets.find(w => w.name === "custom_model");
-                
                 const updateModels = async () => {
                     try {
                         const configResp = await api.fetchApi("/ehn/get_config", { method: "POST" });
@@ -98,7 +96,6 @@ app.registerExtension({
                 const baseUrlWidget = this.widgets.find(w => w.name === "base_url");
                 const modelWidget = this.widgets.find(w => w.name === "model");
                 const customModelWidget = this.widgets.find(w => w.name === "custom_model");
-                
                 const updateModels = async () => {
                     try {
                         const configResp = await api.fetchApi("/ehn/get_config", { method: "POST" });
