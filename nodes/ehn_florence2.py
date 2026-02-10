@@ -16,12 +16,11 @@ class EHN_Florence2PromptGen:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "model_version": (["Florence-2-large-PromptGen-v2.0", "Florence-2-base-PromptGen-v2.0"],),
-                "task": (["<MORE_DETAILED_CAPTION>", "<DETAILED_CAPTION>", "<CAPTION>", "<GENERATE_TAGS>", "<MIXED_CAPTION>"],),
+                "model": (["Florence-2-large-PromptGen-v2.0", "Florence-2-base-PromptGen-v2.0"], {"default": "Florence-2-large-PromptGen-v2.0"}),
+                "caption_method": (["extra_mixed", "mixed", "detailed", "simple", "tags", "extra", "analyze"], {"default": "extra_mixed"}),
                 "max_new_tokens": ("INT", {"default": 1024, "min": 1, "max": 4096}),
-                "num_beams": ("INT", {"default": 3, "min": 1, "max": 64}),
-                "do_sample": ("BOOLEAN", {"default": False}),
-                "repetition_penalty": ("FLOAT", {"default": 1.05, "min": 0.1, "max": 10.0, "step": 0.01}),
+                "num_beams": ("INT", {"default": 4, "min": 1, "max": 64}),
+                "random_prompt": (["never", "always"], {"default": "never"}),
             }
         }
     RETURN_TYPES = ("STRING",)
@@ -29,10 +28,10 @@ class EHN_Florence2PromptGen:
     FUNCTION = "generate"
     CATEGORY = "EaselHub Nodes/AI"
 
-    def generate(self, image, model_version, task, max_new_tokens, num_beams, do_sample, repetition_penalty):
-        model_id = f"cutemodel/{model_version}"
+    def generate(self, image, model, caption_method, max_new_tokens, num_beams, random_prompt):
+        model_id = f"cutemodel/{model}"
         models_dir = os.path.join(folder_paths.models_dir, "Florence-2")
-        model_path = os.path.join(models_dir, model_version)
+        model_path = os.path.join(models_dir, model)
         if not os.path.exists(model_path): snapshot_download(model_id, cache_dir=models_dir, local_dir=model_path)
         device = "cuda" if torch.cuda.is_available() else "cpu"
         dtype = torch.float16 if device == "cuda" else torch.float32
@@ -40,6 +39,18 @@ class EHN_Florence2PromptGen:
             self.model = AutoModelForCausalLM.from_pretrained(model_path, torch_dtype=dtype, trust_remote_code=True).to(device)
             self.processor = AutoProcessor.from_pretrained(model_path, trust_remote_code=True)
             self.current_model_path = model_path
+        
+        prompt_map = {
+            "tags": "<GENERATE_TAGS>",
+            "simple": "<CAPTION>",
+            "detailed": "<DETAILED_CAPTION>",
+            "extra": "<MORE_DETAILED_CAPTION>",
+            "mixed": "<MIX_CAPTION>",
+            "extra_mixed": "<MIX_CAPTION_PLUS>",
+            "analyze": "<ANALYZE>"
+        }
+        task = prompt_map.get(caption_method, "<MIX_CAPTION_PLUS>")
+        
         pil_image = Image.fromarray((image[0].cpu().numpy() * 255).astype("uint8"))
         inputs = self.processor(text=task, images=pil_image, return_tensors="pt").to(device, dtype)
         gen_kwargs = {
@@ -47,8 +58,8 @@ class EHN_Florence2PromptGen:
             "pixel_values": inputs["pixel_values"],
             "max_new_tokens": max_new_tokens,
             "num_beams": num_beams,
-            "do_sample": do_sample,
-            "repetition_penalty": repetition_penalty,
+            "do_sample": True if random_prompt == "always" else False,
+            "repetition_penalty": 1.05,
         }
         generated_ids = self.model.generate(**gen_kwargs)
         generated_text = self.processor.batch_decode(generated_ids, skip_special_tokens=False)[0]
