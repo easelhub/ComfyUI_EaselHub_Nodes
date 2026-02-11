@@ -46,11 +46,11 @@ class EHN_ImageLoader:
                 i = ImageOps.exif_transpose(Image.open(f))
                 if i.mode == 'I': i = i.point(lambda x: x * (1/255))
                 i = i.convert("RGBA")
-                m = i.split()[-1]
+                m = np.array(i.split()[-1]).astype(np.float32) / 255.0
                 i = i.convert("RGB")
                 
                 imgs.append(torch.from_numpy(np.array(i).astype(np.float32) / 255.0).unsqueeze(0))
-                msks.append(1.0 - torch.from_numpy(np.array(m).astype(np.float32) / 255.0).unsqueeze(0))
+                msks.append(torch.from_numpy(1.0 - m).unsqueeze(0))
             except: continue
             
         if not imgs: return ([], [], 0)
