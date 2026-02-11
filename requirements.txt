@@ -6,3 +6,4 @@ aiohttp
 Pillow
 numpy
 torch
+timm
