@@ -1,43 +1,46 @@
 import math
+import random
 
-def to_num(v):
-    try: return float(v)
-    except: return 0.0
+def safe_eval(expr, vars):
+    try:
+        return eval(expr, {"__builtins__": None}, {
+            **vars, "math": math, "random": random, "round": round, "abs": abs, "min": min, "max": max, "int": int, "float": float, "pow": pow
+        })
+    except: return 0
 
 class EHN_MathExpression:
     @classmethod
     def INPUT_TYPES(s):
         return {
-            "required": {"expression": ("STRING", {"multiline": False, "default": "a + b"})},
-            "optional": {"a": ("*", {"default": 0.0, "forceInput": True}), "b": ("*", {"default": 0.0, "forceInput": True}), "c": ("*", {"default": 0.0, "forceInput": True})}
+            "required": {
+                "expression": ("STRING", {"multiline": True, "default": "a + b"}),
+            },
+            "optional": {
+                "a": ("INT,FLOAT", {"default": 0, "step": 0.01}),
+                "b": ("INT,FLOAT", {"default": 0, "step": 0.01}),
+                "c": ("INT,FLOAT", {"default": 0, "step": 0.01}),
+            }
         }
     RETURN_TYPES = ("INT", "FLOAT")
-    RETURN_NAMES = ("int", "float")
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Number"
-
-    def execute(self, expression, a=0.0, b=0.0, c=0.0):
-        try:
-            val = eval(expression, {"__builtins__": {}}, {"a": to_num(a), "b": to_num(b), "c": to_num(c), "math": math, "round": round, "abs": abs, "min": min, "max": max, "int": int, "float": float, "pow": pow})
-            return (int(val), float(val))
-        except: return (0, 0.0)
+    def execute(self, expression, a=0, b=0, c=0):
+        val = safe_eval(expression, {"a": a, "b": b, "c": c})
+        return (int(val), float(val))
 
 class EHN_NumberCompare:
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "a": ("*", {"default": 0.0, "forceInput": True}),
-                "b": ("*", {"default": 0.0, "forceInput": True}),
-                "operation": (["a > b", "a < b", "a >= b", "a <= b", "a == b", "a != b"],),
+                "a": ("INT,FLOAT", {"default": 0, "step": 0.01}),
+                "b": ("INT,FLOAT", {"default": 0, "step": 0.01}),
+                "op": ([">", "<", ">=", "<=", "==", "!="],),
             }
         }
     RETURN_TYPES = ("BOOLEAN",)
-    RETURN_NAMES = ("bool",)
     FUNCTION = "execute"
     CATEGORY = "EaselHub Nodes/Number"
-
-    def execute(self, a, b, operation):
-        a, b = to_num(a), to_num(b)
-        res = {"a > b": a > b, "a < b": a < b, "a >= b": a >= b, "a <= b": a <= b, "a == b": math.isclose(a, b), "a != b": not math.isclose(a, b)}.get(operation, False)
-        return (res,)
+    def execute(self, a, b, op):
+        ops = {">": a > b, "<": a < b, ">=": a >= b, "<=": a <= b, "==": math.isclose(a, b), "!=": not math.isclose(a, b)}
+        return (ops.get(op, False),)
