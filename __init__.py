@@ -52,7 +52,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_ImageTiler": "🧩EHN Image Tiler",
     "EHN_ImageMerger": "🧩EHN Image Merger",
     "EHN_ImageResize": "📐EHN Image Resize",
-    "EHN_MaskProcessor": "🎭EHN Mask Editor",
+    "EHN_MaskProcessor": "🎭EHN Mask Processor",
     "EHN_GetImageSize": "📏EHN Get Image Size",
     "EHN_MathExpression": "🔢EHN Math Expression",
     "EHN_NumberCompare": "⚖️EHN Number Compare",
@@ -64,7 +64,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_OpenAIGenerator": "🤖EHN OpenAI Generator",
     "EHN_OllamaGenerator": "🤖EHN Ollama Generator",
     "EHN_ImageLoader": "📂EHN Image Loader",
-    "EHN_Florence2PromptGen": "📝EHN Florence2 Prompt",
+    "EHN_Florence2PromptGen": "📝EHN Florence2 Prompt Gen",
 }
 
 WEB_DIRECTORY = "./web"
