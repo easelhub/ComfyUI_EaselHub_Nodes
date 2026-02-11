@@ -1,3 +1,21 @@
+import os
+import sys
+import subprocess
+import importlib.util
+
+def auto_install():
+    req = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    if not os.path.exists(req): return
+    with open(req, 'r') as f:
+        deps = [x.strip().split('=')[0].split('>')[0].split('<')[0] for x in f if x.strip()]
+    
+    map_name = {"Pillow": "PIL"}
+    if any(importlib.util.find_spec(map_name.get(d, d)) is None for d in deps):
+        try: subprocess.check_call([sys.executable, "-m", "pip", "install", "-r", req])
+        except Exception as e: print(f"EHN Auto-Install Failed: {e}")
+
+auto_install()
+
 from .nodes.ehn_image_tiling import EHN_ImageTiler, EHN_ImageMerger
 from .nodes.ehn_image_resize import EHN_ImageResize
 from .nodes.ehn_mask_ops import EHN_MaskProcessor
@@ -9,12 +27,10 @@ from .nodes.ehn_text_ops import EHN_PromptList, EHN_PromptMix
 from .nodes.ehn_ai_generator import EHN_AIGenerator, EHN_OpenAIGenerator, EHN_OllamaGenerator
 from .nodes.ehn_image_loader import EHN_ImageLoader
 from .nodes.ehn_florence2 import EHN_Florence2PromptGen
-from .nodes.ehn_wd14 import EHN_WD14Tagger
-from .nodes.ehn_schedulers import EHN_SchedulerInjector
+from .nodes import ehn_schedulers
 
 NODE_CLASS_MAPPINGS = {
     "EHN_Florence2PromptGen": EHN_Florence2PromptGen,
-    "EHN_WD14Tagger": EHN_WD14Tagger,
     "EHN_ImageLoader": EHN_ImageLoader,
     "EHN_ImageTiler": EHN_ImageTiler,
     "EHN_ImageMerger": EHN_ImageMerger,
@@ -30,7 +46,6 @@ NODE_CLASS_MAPPINGS = {
     "EHN_AIGenerator": EHN_AIGenerator,
     "EHN_OpenAIGenerator": EHN_OpenAIGenerator,
     "EHN_OllamaGenerator": EHN_OllamaGenerator,
-    "EHN_SchedulerInjector": EHN_SchedulerInjector
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -50,8 +65,6 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_OllamaGenerator": "🤖EHN Ollama Generator",
     "EHN_ImageLoader": "📂EHN Image Loader",
     "EHN_Florence2PromptGen": "📝EHN Florence2 Prompt",
-    "EHN_WD14Tagger": "🏷️EHN WD14 Tagger",
-    "EHN_SchedulerInjector": "⚙️EHN Scheduler Injector",
 }
 
 WEB_DIRECTORY = "./web"

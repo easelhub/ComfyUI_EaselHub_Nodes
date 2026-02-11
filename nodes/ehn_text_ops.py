@@ -1,4 +1,6 @@
 import random
+import os
+import re
 
 class EHN_PromptList:
     @classmethod
@@ -27,10 +29,13 @@ class EHN_PromptList:
 class EHN_PromptMix:
     @classmethod
     def INPUT_TYPES(s):
+        d = os.path.join(os.path.dirname(os.path.dirname(__file__)), "txt")
+        f = [x for x in os.listdir(d) if x.endswith(".txt")] if os.path.exists(d) else []
         return {
             "required": {
                 "text_a": ("STRING", {"forceInput": True}),
                 "separator": ("STRING", {"default": ","}),
+                "preset": (["None"] + f,),
             },
             "optional": {
                 "text_b": ("STRING", {"forceInput": True}),
@@ -41,12 +46,20 @@ class EHN_PromptMix:
     FUNCTION = "run"
     CATEGORY = "EaselHub Nodes/Text"
 
-    def run(self, text_a, separator, text_b="", replace_rules=""):
+    def run(self, text_a, separator, preset, text_b="", replace_rules=""):
         result = text_a
         if text_b: result = f"{text_a}{separator} {text_b}" if text_a else text_b
-        if replace_rules:
-            for line in replace_rules.splitlines():
-                if "|" in line:
-                    find, replace = line.split("|", 1)
-                    result = result.replace(find, replace)
+        rules = replace_rules.splitlines()
+        if preset != "None":
+            p = os.path.join(os.path.dirname(os.path.dirname(__file__)), "txt", preset)
+            if os.path.exists(p):
+                with open(p, "r", encoding="utf-8") as f:
+                    rules.extend(f.read().splitlines())
+        for line in rules:
+            if "|" in line:
+                k, v = line.split("|", 1)
+                result = result.replace(k, v)
+        result = re.sub(r'\s+', ' ', result).strip()
+        result = re.sub(r'([,.?!;:])\1+', r'\1', result)
+        result = re.sub(r'\s*([,.?!;:])\s*', r'\1 ', result).strip()
         return (result,)

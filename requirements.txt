@@ -1,8 +1,7 @@
 scipy
+diffusers
 transformers==4.49.0
 modelscope
-onnxruntime-gpu
-pandas
 aiohttp
 Pillow
 numpy

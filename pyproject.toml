@@ -13,9 +13,8 @@ dependencies = [
     "Pillow",
     "aiohttp",
     "scipy",
-    "pandas",
+    "diffusers",
     "modelscope",
-    "onnxruntime-gpu",
     "transformers"
 ]
 dynamic = ["version"]

@@ -1,47 +1,44 @@
+import math
 import torch
-import comfy.samplers
+import numpy as np
+from comfy.samplers import SchedulerHandler, SCHEDULER_HANDLERS, SCHEDULER_NAMES
 
-_EHN_SCHEDULER_CONFIG = {"shift": 3.0}
+try:
+    from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
+except ImportError:
+    FlowMatchEulerDiscreteScheduler = None
 
-def get_sigmas_flow_match_euler_discrete(n, sigma_min, sigma_max, shift):
-    t = torch.linspace(1, 0, n + 1)
-    t_shifted = (t * shift) / (1 + (shift - 1) * t)
-    return t_shifted * (sigma_max - sigma_min) + sigma_min
+if FlowMatchEulerDiscreteScheduler:
+    _CONFIG = {
+        "base_image_seq_len": 256,
+        "base_shift": math.log(3),
+        "invert_sigmas": False,
+        "max_image_seq_len": 8192,
+        "max_shift": math.log(3),
+        "num_train_timesteps": 1000,
+        "shift": 1.0,
+        "shift_terminal": None,
+        "stochastic_sampling": False,
+        "time_shift_type": "exponential",
+        "use_beta_sigmas": False,
+        "use_dynamic_shifting": True,
+        "use_exponential_sigmas": False,
+        "use_karras_sigmas": False,
+    }
 
-if not hasattr(comfy.samplers, "ehn_original_calculate_sigmas"):
-    comfy.samplers.ehn_original_calculate_sigmas = comfy.samplers.calculate_sigmas
+    def _handler(model_sampling, steps):
+        s = FlowMatchEulerDiscreteScheduler.from_config(_CONFIG)
+        d = model_sampling.device if hasattr(model_sampling, 'device') else 'cpu'
+        s.set_timesteps(steps, device=d, mu=0.0)
+        return s.sigmas
 
-def ehn_calculate_sigmas(model, scheduler_name, steps):
-    if scheduler_name == "FlowMatchEulerDiscrete":
-        if hasattr(model, "model") and hasattr(model.model, "model_sampling"):
-            ms = model.model.model_sampling
-        elif hasattr(model, "model_sampling"):
-            ms = model.model_sampling
-        else:
-            ms = model
-            
-        shift = _EHN_SCHEDULER_CONFIG["shift"]
-        return get_sigmas_flow_match_euler_discrete(steps, ms.sigma_min, ms.sigma_max, shift)
-    return comfy.samplers.ehn_original_calculate_sigmas(model, scheduler_name, steps)
+    if "FlowMatchEulerDiscreteScheduler" not in SCHEDULER_HANDLERS:
+        SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler"] = SchedulerHandler(handler=_handler, use_ms=True)
+        SCHEDULER_NAMES.append("FlowMatchEulerDiscreteScheduler")
 
-comfy.samplers.calculate_sigmas = ehn_calculate_sigmas
-
-if "FlowMatchEulerDiscrete" not in comfy.samplers.SCHEDULER_NAMES:
-    comfy.samplers.SCHEDULER_NAMES.append("FlowMatchEulerDiscrete")
-
-class EHN_SchedulerInjector:
-    @classmethod
-    def INPUT_TYPES(s):
-        return {
-            "required": {
-                "model": ("MODEL",),
-                "shift": ("FLOAT", {"default": 3.0, "min": 0.1, "max": 100.0, "step": 0.1}),
-            }
-        }
-    RETURN_TYPES = ("MODEL",)
-    FUNCTION = "inject"
-    CATEGORY = "EaselHub Nodes/System"
-
-    def inject(self, model, shift):
-        _EHN_SCHEDULER_CONFIG["shift"] = shift
-        return (model,)
+    try:
+        from comfy.samplers import KSampler
+        if "FlowMatchEulerDiscreteScheduler" not in KSampler.SCHEDULERS:
+            KSampler.SCHEDULERS.append("FlowMatchEulerDiscreteScheduler")
+    except:
+        pass
