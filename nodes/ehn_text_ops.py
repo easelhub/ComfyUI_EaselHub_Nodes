@@ -8,23 +8,36 @@ class EHN_PromptList:
         return {
             "required": {
                 "text": ("STRING", {"multiline": True, "dynamicPrompts": False}),
-                "split_lines": ("BOOLEAN", {"default": True}),
-                "method": (["sequential", "random", "reverse"],),
-                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
+                "delimiter": ("STRING", {"default": "\\n"}),
+                "action": (["sequential", "shuffle", "random_pick", "pick_by_index"],),
                 "start_index": ("INT", {"default": 0, "min": 0}),
-                "max_count": ("INT", {"default": 0, "min": 0}),
+                "limit_count": ("INT", {"default": 0, "min": 0}),
+                "seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff}),
             }
         }
     RETURN_TYPES = ("STRING",)
     OUTPUT_IS_LIST = (True,)
     FUNCTION = "run"
     CATEGORY = "EaselHub Nodes/Text"
-
-    def run(self, text, split_lines, method, seed, start_index, max_count):
-        lines = [line.strip() for line in text.splitlines() if line.strip()] if split_lines else [text]
-        if method == "random": random.Random(seed).shuffle(lines)
-        elif method == "reverse": lines.reverse()
-        return (lines[start_index:start_index + max_count] if max_count > 0 else lines[start_index:],)
+    def run(self, text, delimiter, action, start_index, limit_count, seed):
+        if not delimiter: data = [text.strip()]
+        else:
+            sep = delimiter.replace("\\n", "\n").replace("\\r", "\r").replace("\\t", "\t")
+            data = [x.strip() for x in text.split(sep) if x.strip()]
+        if not data: return ([""],)
+        count = len(data)
+        if action == "pick_by_index":
+            return ([data[start_index % count]],)
+        if action == "random_pick":
+            rng = random.Random(seed)
+            num = limit_count if limit_count > 0 else 1
+            return ([rng.choice(data) for _ in range(num)],)
+        if action == "shuffle":
+            random.Random(seed).shuffle(data)
+        start = start_index % count
+        res = data[start:] + data[:start]
+        if limit_count > 0: res = res[:limit_count]
+        return (res,)
 
 class EHN_PromptMix:
     @classmethod
@@ -45,21 +58,18 @@ class EHN_PromptMix:
     RETURN_TYPES = ("STRING",)
     FUNCTION = "run"
     CATEGORY = "EaselHub Nodes/Text"
-
     def run(self, text_a, separator, preset, text_b="", replace_rules=""):
-        result = text_a
-        if text_b: result = f"{text_a}{separator} {text_b}" if text_a else text_b
+        parts = [x for x in [text_a, text_b] if x]
+        res = f"{separator} ".join(parts)
         rules = replace_rules.splitlines()
         if preset != "None":
             p = os.path.join(os.path.dirname(os.path.dirname(__file__)), "txt", preset)
             if os.path.exists(p):
-                with open(p, "r", encoding="utf-8") as f:
-                    rules.extend(f.read().splitlines())
+                with open(p, "r", encoding="utf-8") as f: rules.extend(f.read().splitlines())
         for line in rules:
             if "|" in line:
                 k, v = line.split("|", 1)
-                result = result.replace(k, v)
-        result = re.sub(r'\s+', ' ', result).strip()
-        result = re.sub(r'([,.?!;:])\1+', r'\1', result)
-        result = re.sub(r'\s*([,.?!;:])\s*', r'\1 ', result).strip()
-        return (result,)
+                res = res.replace(k, v)
+        res = re.sub(r'\s+', ' ', res).strip()
+        res = re.sub(r'([,.?!;:])\1+', r'\1', res)
+        return (re.sub(r'\s*([,.?!;:])\s*', r'\1 ', res).strip(),)
