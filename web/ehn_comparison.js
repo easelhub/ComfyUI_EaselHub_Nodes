@@ -1,41 +1,83 @@
 import { app } from "../../scripts/app.js";
+import { api } from "../../scripts/api.js";
 
 app.registerExtension({
     name: "EaselHub.ImageComparison",
     async beforeRegisterNodeDef(nodeType, nodeData, app) {
         if (nodeData.name === "EHN_ImageComparison") {
             nodeType.prototype.onExecuted = function(message) {
-                if (message && message.ehn_comparison_images && message.ehn_comparison_images.length >= 2) {
-                    if (!this.ehn_imgs) this.ehn_imgs = [new Image(), new Image()];
-                    for (let i = 0; i < 2; i++) {
-                        this.ehn_imgs[i].src = `./view?filename=${message.ehn_comparison_images[i].filename}&type=${message.ehn_comparison_images[i].type}&subfolder=${message.ehn_comparison_images[i].subfolder}&t=${Date.now()}`;
-                    }
-                    this.ehn_imgs[0].onload = () => {
-                         this.setSize([this.size[0], Math.max(100, (this.size[0] / (this.ehn_imgs[0].width / this.ehn_imgs[0].height)) + 50)]);
-                         this.setDirtyCanvas(true, true);
-                    }
+                if (message && message.images && message.images.length >= 2) {
+                    this.imgs = [new Image(), new Image()];
+                    const t = Date.now();
+                    this.imgs[0].src = api.apiURL(`/view?filename=${message.images[0].filename}&type=${message.images[0].type}&subfolder=${message.images[0].subfolder}&t=${t}`);
+                    this.imgs[1].src = api.apiURL(`/view?filename=${message.images[1].filename}&type=${message.images[1].type}&subfolder=${message.images[1].subfolder}&t=${t}`);
+                    
+                    const updateSize = () => {
+                        if (this.imgs[0].complete && this.imgs[1].complete) {
+                            const w1 = this.imgs[0].width, h1 = this.imgs[0].height;
+                            const w2 = this.imgs[1].width, h2 = this.imgs[1].height;
+                            const ratio = Math.max(w1/h1, w2/h2);
+                            this.setSize([this.size[0], this.size[0] / ratio + 60]);
+                            app.graph.setDirtyCanvas(true, true);
+                        }
+                    };
+                    this.imgs[0].onload = updateSize;
+                    this.imgs[1].onload = updateSize;
                 }
             };
+
+            nodeType.prototype.onDrawBackground = function(ctx) {
+                if (this.imgs && this.imgs[0].complete && this.imgs[1].complete) return;
+            };
+            
             nodeType.prototype.onDrawForeground = function(ctx) {
-                if (!this.ehn_imgs || !this.ehn_imgs[0].complete || !this.ehn_imgs[1].complete || this.flags.collapsed) return;
-                const w = this.size[0], h = this.size[1], headerHeight = 50, availH = h - headerHeight;
-                if (availH <= 0) return;
-                const scale = Math.min(w / this.ehn_imgs[0].width, availH / this.ehn_imgs[0].height);
-                const drawW = this.ehn_imgs[0].width * scale, drawH = this.ehn_imgs[0].height * scale;
-                const offX = (w - drawW) / 2, offY = headerHeight + (availH - drawH) / 2;
-                let split = w / 2;
+                if (!this.imgs || !this.imgs[0].complete || !this.imgs[1].complete) return;
+
+                const w = this.size[0];
+                const h = this.size[1] - 60; 
+                const y = 60;
+                
+                let splitX = w / 2;
                 if (app.canvas.graph_mouse) {
-                    const local = [app.canvas.graph_mouse[0] - this.pos[0], app.canvas.graph_mouse[1] - this.pos[1]];
-                    if (local[0] >= 0 && local[0] <= w && local[1] >= 0 && local[1] <= h) split = local[0];
+                    const mx = app.canvas.graph_mouse[0] - this.pos[0];
+                    const my = app.canvas.graph_mouse[1] - this.pos[1];
+                    if (mx >= 0 && mx <= w && my >= y && my <= y + h) splitX = mx;
                 }
-                ctx.save(); ctx.beginPath(); ctx.rect(0, headerHeight, split, h - headerHeight); ctx.clip();
-                ctx.drawImage(this.ehn_imgs[0], offX, offY, drawW, drawH); ctx.restore();
-                ctx.save(); ctx.beginPath(); ctx.rect(split, headerHeight, w - split, h - headerHeight); ctx.clip();
-                ctx.drawImage(this.ehn_imgs[1], offX, offY, drawW, drawH); ctx.restore();
-                ctx.strokeStyle = "rgba(0, 0, 0, 0.5)"; ctx.lineWidth = 1; ctx.beginPath(); ctx.moveTo(split, headerHeight); ctx.lineTo(split, h); ctx.stroke();
-                ctx.font = "bold 14px Arial";
-                if (split > offX + 20) { ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(offX + 5, offY + drawH - 25, 24, 20); ctx.fillStyle = "#FFF"; ctx.fillText("A", offX + 12, offY + drawH - 10); }
-                if (split < offX + drawW - 20) { ctx.fillStyle = "rgba(0,0,0,0.5)"; ctx.fillRect(offX + drawW - 29, offY + drawH - 25, 24, 20); ctx.fillStyle = "#FFF"; ctx.fillText("B", offX + drawW - 22, offY + drawH - 10); }
+
+                const drawImg = (img, clipRect) => {
+                    const imgW = img.width;
+                    const imgH = img.height;
+                    const scale = Math.min(w / imgW, h / imgH);
+                    const drawW = imgW * scale;
+                    const drawH = imgH * scale;
+                    const offX = (w - drawW) / 2;
+                    const offY = y + (h - drawH) / 2;
+
+                    ctx.save();
+                    ctx.beginPath();
+                    ctx.rect(clipRect[0], clipRect[1], clipRect[2], clipRect[3]);
+                    ctx.clip();
+                    ctx.drawImage(img, offX, offY, drawW, drawH);
+                    ctx.restore();
+                };
+
+                drawImg(this.imgs[0], [0, y, splitX, h]);
+                drawImg(this.imgs[1], [splitX, y, w - splitX, h]);
+
+                ctx.strokeStyle = "rgba(0, 0, 0, 0.5)";
+                ctx.lineWidth = 1;
+                ctx.beginPath();
+                ctx.moveTo(splitX, y);
+                ctx.lineTo(splitX, y + h);
+                ctx.stroke();
+
+                ctx.fillStyle = "rgba(0,0,0,0.5)";
+                ctx.fillRect(5, y + 5, 20, 20);
+                ctx.fillRect(w - 25, y + 5, 20, 20);
+                ctx.fillStyle = "#fff";
+                ctx.font = "14px Arial";
+                ctx.fillText("A", 10, y + 20);
+                ctx.fillText("B", w - 20, y + 20);
             };
         }
     }

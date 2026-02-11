@@ -8,14 +8,14 @@ class EHN_ImageResize:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "width": ("INT", {"default": 1024, "min": 0, "max": 8192, "step": 8}),
-                "height": ("INT", {"default": 1024, "min": 0, "max": 8192, "step": 8}),
+                "width": ("INT", {"default": 1024, "min": 0, "max": 16384, "step": 8}),
+                "height": ("INT", {"default": 1024, "min": 0, "max": 16384, "step": 8}),
                 "interpolation": (["nearest", "bilinear", "bicubic", "area"], {"default": "bicubic"}),
                 "method": (["stretch", "keep proportion", "fill / crop", "pad"], {"default": "keep proportion"}),
                 "condition": (["always", "downscale if bigger", "upscale if smaller", "if bigger area", "if smaller area"], {"default": "always"}),
-                "multiple_of": ("INT", {"default": 8, "min": 0, "max": 512, "step": 8}),
-                "mask_expansion": ("INT", {"default": 0, "min": -128, "max": 128, "step": 1}),
-                "mask_blur": ("INT", {"default": 0, "min": 0, "max": 64, "step": 1}),
+                "multiple_of": ("INT", {"default": 0, "min": 0, "max": 512, "step": 8}),
+                "mask_expansion": ("INT", {"default": 0, "min": -512, "max": 512, "step": 1}),
+                "mask_blur": ("INT", {"default": 0, "min": 0, "max": 256, "step": 1}),
                 "mask_fill_holes": ("BOOLEAN", {"default": False}),
                 "mask_invert": ("BOOLEAN", {"default": False}),
             },
@@ -28,62 +28,69 @@ class EHN_ImageResize:
 
     def execute(self, image, width, height, interpolation, method, condition, multiple_of, mask_expansion, mask_blur, mask_fill_holes, mask_invert, mask=None):
         B, H, W, C = image.shape
+        
         if width == 0 and height == 0:
-            target_mask = mask if mask is not None else torch.ones((B, H, W), device=image.device, dtype=image.dtype)
-            return (image, process_mask_core(target_mask, mask_invert, mask_expansion, mask_blur, mask_fill_holes))
+            m = mask if mask is not None else torch.ones((B, H, W), device=image.device, dtype=image.dtype)
+            return (image, process_mask_core(m, mask_invert, mask_expansion, mask_blur, mask_fill_holes))
 
-        target_width, target_height = width, height
-        if width == 0: target_width = max(1, round(W * height / H))
-        elif height == 0: target_height = max(1, round(H * width / W))
+        tw, th = width, height
+        if tw == 0: tw = max(1, round(W * th / H))
+        elif th == 0: th = max(1, round(H * tw / W))
 
         if multiple_of > 1:
-            target_width = target_width - (target_width % multiple_of)
-            target_height = target_height - (target_height % multiple_of)
+            tw = tw - (tw % multiple_of)
+            th = th - (th % multiple_of)
 
+        do_resize = True
         if condition == "downscale if bigger":
             if method == "fill / crop":
-                if W <= target_width and H <= target_height: target_width, target_height = W, H
-            elif W <= target_width or H <= target_height: target_width, target_height = W, H
+                if W <= tw and H <= th: do_resize = False
+            elif W <= tw or H <= th: do_resize = False
         elif condition == "upscale if smaller":
             if method == "fill / crop":
-                if W >= target_width and H >= target_height: target_width, target_height = W, H
-            elif W >= target_width or H >= target_height: target_width, target_height = W, H
+                if W >= tw and H >= th: do_resize = False
+            elif W >= tw or H >= th: do_resize = False
         elif condition == "if bigger area":
-            if W * H <= target_width * target_height: target_width, target_height = W, H
+            if W * H <= tw * th: do_resize = False
         elif condition == "if smaller area":
-            if W * H >= target_width * target_height: target_width, target_height = W, H
+            if W * H >= tw * th: do_resize = False
 
+        if not do_resize:
+            m = mask if mask is not None else torch.ones((B, H, W), device=image.device, dtype=image.dtype)
+            return (image, process_mask_core(m, mask_invert, mask_expansion, mask_blur, mask_fill_holes))
+
+        rw, rh = tw, th
         if method == "keep proportion" or method == "pad":
-            scale = min(target_width / W, target_height / H)
-            resize_width, resize_height = max(1, round(W * scale)), max(1, round(H * scale))
+            s = min(tw / W, th / H)
+            rw, rh = max(1, round(W * s)), max(1, round(H * s))
         elif method == "fill / crop":
-            scale = max(target_width / W, target_height / H)
-            resize_width, resize_height = max(1, round(W * scale)), max(1, round(H * scale))
-        else: resize_width, resize_height = target_width, target_height
+            s = max(tw / W, th / H)
+            rw, rh = max(1, round(W * s)), max(1, round(H * s))
 
-        if resize_width != W or resize_height != H:
-            image = image.permute(0, 3, 1, 2)
-            image = F.interpolate(image, size=(resize_height, resize_width), mode=interpolation)
-            image = image.permute(0, 2, 3, 1)
-            if mask is not None: mask = F.interpolate(mask.unsqueeze(1), size=(resize_height, resize_width), mode="nearest").squeeze(1)
+        img = image.permute(0, 3, 1, 2)
+        img = F.interpolate(img, size=(rh, rw), mode=interpolation)
+        img = img.permute(0, 2, 3, 1)
 
+        m = mask.unsqueeze(1) if mask is not None else torch.ones((B, 1, rh, rw), device=image.device, dtype=image.dtype)
+        if mask is not None:
+            m = F.interpolate(m, size=(rh, rw), mode="nearest")
+        
         if method == "pad":
-            pad_w, pad_h = target_width - resize_width, target_height - resize_height
-            pad_l, pad_t = pad_w // 2, pad_h // 2
-            if pad_w > 0 or pad_h > 0:
-                image = image.permute(0, 3, 1, 2)
-                image = F.pad(image, (pad_l, pad_w - pad_l, pad_t, pad_h - pad_t), value=0)
-                image = image.permute(0, 2, 3, 1)
-                if mask is not None: mask = F.pad(mask, (pad_l, pad_w - pad_l, pad_t, pad_h - pad_t), value=0)
-                else:
-                    mask = torch.zeros((B, target_height, target_width), device=image.device, dtype=image.dtype)
-                    mask[:, pad_t:target_height-(pad_h-pad_t), pad_l:target_width-(pad_w-pad_l)] = 1.0
+            pw, ph = tw - rw, th - rh
+            pl, pt = pw // 2, ph // 2
+            if pw > 0 or ph > 0:
+                img = img.permute(0, 3, 1, 2)
+                img = F.pad(img, (pl, pw - pl, pt, ph - pt), value=0)
+                img = img.permute(0, 2, 3, 1)
+                m = F.pad(m, (pl, pw - pl, pt, ph - pt), value=0)
         elif method == "fill / crop":
-            crop_w, crop_h = resize_width - target_width, resize_height - target_height
-            crop_l, crop_t = crop_w // 2, crop_h // 2
-            if crop_w > 0 or crop_h > 0:
-                image = image[:, crop_t:crop_t+target_height, crop_l:crop_l+target_width, :]
-                if mask is not None: mask = mask[:, crop_t:crop_t+target_height, crop_l:crop_l+target_width]
+            cw, ch = rw - tw, rh - th
+            cl, ct = cw // 2, ch // 2
+            if cw > 0 or ch > 0:
+                img = img[:, ct:ct+th, cl:cl+tw, :]
+                m = m[:, :, ct:ct+th, cl:cl+tw]
 
-        if mask is None: mask = torch.ones((B, target_height, target_width), device=image.device, dtype=image.dtype)
-        return (image, process_mask_core(mask, mask_invert, mask_expansion, mask_blur, mask_fill_holes))
+        if mask is None and method != "pad":
+             m = torch.ones((B, 1, img.shape[1], img.shape[2]), device=image.device, dtype=image.dtype)
+
+        return (img, process_mask_core(m.squeeze(1), mask_invert, mask_expansion, mask_blur, mask_fill_holes))
