@@ -1,9 +1,2 @@
-scipy
-diffusers
-transformers==4.49.0
+transformers>=4.38.0
 modelscope
-aiohttp
-Pillow
-numpy
-torch
-timm
