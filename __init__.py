@@ -6,7 +6,6 @@ from .py.ehn_prompt_utils import EHN_PromptProcess
 from .py.ehn_scheduler import EHN_FlowMatchEulerScheduler
 from .py.ehn_group_manager import EHN_GroupManager
 from .py.ehn_seed import EHN_Seed
-from .py.ehn_image_color_match import EHN_ImageColorMatch
 
 NODE_CLASS_MAPPINGS = {
     "EHN_ImageComparer": EHN_ImageComparer,
@@ -17,8 +16,7 @@ NODE_CLASS_MAPPINGS = {
     "EHN_PromptProcess": EHN_PromptProcess,
     "EHN_FlowMatchEulerScheduler": EHN_FlowMatchEulerScheduler,
     "EHN_GroupManager": EHN_GroupManager,
-    "EHN_Seed": EHN_Seed,
-    "EHN_ImageColorMatch": EHN_ImageColorMatch
+    "EHN_Seed": EHN_Seed
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -30,8 +28,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_PromptProcess": "📝 EHN Prompt Process",
     "EHN_FlowMatchEulerScheduler": "📅 EHN FlowMatch Euler Scheduler",
     "EHN_GroupManager": "🔇 EHN Group Manager",
-    "EHN_Seed": "🌱 EHN Seed",
-    "EHN_ImageColorMatch": "🎨 EHN Image Color Match"
+    "EHN_Seed": "🌱 EHN Seed"
 }
 
 WEB_DIRECTORY = "./js"
