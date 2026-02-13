@@ -5,7 +5,7 @@ from .py.ehn_image_resize import EHN_ImageResize
 from .py.ehn_prompt_utils import EHN_PromptProcess
 from .py.ehn_scheduler import EHN_FlowMatchEulerScheduler
 from .py.ehn_group_manager import EHN_GroupManager
-from .py.ehn_setget import EHN_SetNode, EHN_GetNode
+from .py.ehn_seed import EHN_Seed
 
 NODE_CLASS_MAPPINGS = {
     "EHN_ImageComparer": EHN_ImageComparer,
@@ -16,8 +16,7 @@ NODE_CLASS_MAPPINGS = {
     "EHN_PromptProcess": EHN_PromptProcess,
     "EHN_FlowMatchEulerScheduler": EHN_FlowMatchEulerScheduler,
     "EHN_GroupManager": EHN_GroupManager,
-    "EHN_SetNode": EHN_SetNode,
-    "EHN_GetNode": EHN_GetNode
+    "EHN_Seed": EHN_Seed
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -29,8 +28,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_PromptProcess": "📝 EHN Prompt Process",
     "EHN_FlowMatchEulerScheduler": "📅 EHN FlowMatch Euler Scheduler",
     "EHN_GroupManager": "🔇 EHN Group Manager",
-    "EHN_SetNode": "📥 EHN Set Node",
-    "EHN_GetNode": "📤 EHN Get Node"
+    "EHN_Seed": "🌱 EHN Seed"
 }
 
 WEB_DIRECTORY = "./js"
