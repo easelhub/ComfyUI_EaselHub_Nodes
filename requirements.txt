@@ -1,2 +1,4 @@
 transformers>=4.38.0
-modelscope
+huggingface_hub
+timm
+einops
