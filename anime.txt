@@ -5,3 +5,5 @@ Cartoon|photo
 digital|photo
 artist name|photo
 artist|photo
+katsuragi|photo
+misato|photo
