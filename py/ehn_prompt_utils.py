@@ -1,55 +1,19 @@
-import re
-import os
+import re, os
 
 class EHN_PromptProcess:
+    CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Prompt", ("STRING",), ("prompt",), "run"
     @classmethod
     def INPUT_TYPES(s):
-        txt_files = ["None"]
-        base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-        if os.path.exists(base_dir):
-            txt_files += [f for f in os.listdir(base_dir) if f.endswith('.txt') and f != "requirements.txt"]
-            
-        return {
-            "required": {
-                "prompt": ("STRING", {"multiline": True, "default": "", "forceInput": True}),
-            },
-            "optional": {
-                "concat_prompt": ("STRING", {"multiline": True, "default": "", "forceInput": True}),
-                "separator": ("STRING", {"multiline": False, "default": ","}),
-                "replace_file": (sorted(txt_files), {"default": "None"}),
-                "replace_pairs": ("STRING", {"multiline": True, "default": "", "placeholder": "old1|new1\nold2|new2"}),
-            }
-        }
-
-    RETURN_TYPES = ("STRING",)
-    RETURN_NAMES = ("prompt",)
-    FUNCTION = "execute"
-    CATEGORY = "EaselHub/Prompt"
-
-    def execute(self, prompt, concat_prompt="", separator=",", replace_file="None", replace_pairs=""):
-        if concat_prompt:
-            prompt = f"{prompt}{separator}{concat_prompt}"
-        
-        replacements = []
-        
-        if replace_file != "None":
-            base_dir = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
-            file_path = os.path.join(base_dir, replace_file)
-            if os.path.exists(file_path):
-                with open(file_path, 'r', encoding='utf-8') as f:
-                    for line in f:
-                        if '|' in line:
-                            replacements.append(line.strip().split('|', 1))
-
-        if replace_pairs:
-            for line in replace_pairs.split('\n'):
-                if '|' in line:
-                    replacements.append(line.strip().split('|', 1))
-        
-        for find, replace in replacements:
-            pattern = re.compile(re.escape(find), re.IGNORECASE)
-            prompt = pattern.sub(replace, prompt)
-        
-        prompt = re.sub(r'\b(\w+)(?:\s+\1\b)+', r'\1', prompt, flags=re.IGNORECASE)
-        
-        return (prompt,)
+        bd = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
+        fs = ["None"] + [f for f in os.listdir(bd) if f.endswith('.txt') and f != "requirements.txt"] if os.path.exists(bd) else ["None"]
+        return {"required": {"prompt": ("STRING", {"multiline": True, "forceInput": True})}, "optional": {"concat": ("STRING", {"multiline": True, "forceInput": True}), "sep": ("STRING", {"default": ","}), "file": (sorted(fs), {"default": "None"}), "pairs": ("STRING", {"multiline": True, "default": ""})}}
+    def run(self, prompt, concat="", sep=",", file="None", pairs=""):
+        p = f"{prompt}{sep}{concat}" if concat else prompt
+        reps = []
+        if file != "None":
+            fp = os.path.join(os.path.dirname(os.path.dirname(os.path.abspath(__file__))), file)
+            if os.path.exists(fp):
+                with open(fp, 'r', encoding='utf-8') as f: reps.extend([l.strip().split('|', 1) for l in f if '|' in l])
+        if pairs: reps.extend([l.strip().split('|', 1) for l in pairs.split('\n') if '|' in l])
+        for k, v in reps: p = re.sub(re.escape(k), v, p, flags=re.IGNORECASE)
+        return (re.sub(r'\b(\w+)(?:\s+\1\b)+', r'\1', p, flags=re.IGNORECASE),)
