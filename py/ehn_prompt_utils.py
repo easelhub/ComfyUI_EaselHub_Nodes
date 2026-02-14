@@ -1,6 +1,6 @@
 import re, os
 
-class Easel_PromptProcess:
+class EHN_PromptProcess:
     CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Prompt", ("STRING",), ("prompt",), "run"
     @classmethod
     def INPUT_TYPES(s):

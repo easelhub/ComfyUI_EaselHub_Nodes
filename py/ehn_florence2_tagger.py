@@ -8,7 +8,7 @@ import folder_paths
 
 def fgi(f): return [x for x in get_imports(f) if x != "flash_attn"] if str(f).endswith("modeling_florence2.py") else get_imports(f)
 
-class Easel_Florence2Tagger:
+class EHN_Florence2Tagger:
     CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Tagger", ("STRING",), ("caption",), "tag"
     @classmethod
     def INPUT_TYPES(s):
