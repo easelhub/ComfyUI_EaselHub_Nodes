@@ -1,3 +1,12 @@
+import sys, os, subprocess, pkg_resources
+try:
+    r_path = os.path.join(os.path.dirname(__file__), "requirements.txt")
+    with open(r_path, "r") as f: reqs = [x.strip() for x in f if x.strip()]
+    installed = {p.key for p in pkg_resources.working_set}
+    missing = [x for x in reqs if x.split(">=")[0].split("==")[0].lower() not in installed]
+    if missing: subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
+except: pass
+
 from .py.ehn_image_comparer import EHN_ImageComparer
 from .py.ehn_image_tile import EHN_ImageTileBatch, EHN_ImageAssembly
 from .py.ehn_florence2_tagger import EHN_Florence2Tagger
