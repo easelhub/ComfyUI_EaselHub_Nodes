@@ -1,94 +1,82 @@
 import torch
-import torch.nn.functional as F
+import numpy as np
+from color_matcher import ColorMatcher
 
 class EHN_ColorMatch:
-    CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Image", ("IMAGE",), ("IMAGE",), "execute"
     @classmethod
     def INPUT_TYPES(s):
-        return {"required": {"image": ("IMAGE",), "reference": ("IMAGE",), "method": (["mkl", "hm", "reinhard", "mv", "mvgd", "hm-mvgd"],)}}
-    
-    def rgb2lab(self, image):
-        # RGB to XYZ
-        r, g, b = image[..., 0], image[..., 1], image[..., 2]
-        r = torch.where(r > 0.04045, ((r + 0.055) / 1.055) ** 2.4, r / 12.92)
-        g = torch.where(g > 0.04045, ((g + 0.055) / 1.055) ** 2.4, g / 12.92)
-        b = torch.where(b > 0.04045, ((b + 0.055) / 1.055) ** 2.4, b / 12.92)
-        x = r * 0.4124 + g * 0.3576 + b * 0.1805
-        y = r * 0.2126 + g * 0.7152 + b * 0.0722
-        z = r * 0.0193 + g * 0.1192 + b * 0.9505
-        # XYZ to LAB
-        x, y, z = x / 0.95047, y / 1.00000, z / 1.08883
-        x = torch.where(x > 0.008856, x ** (1/3), 7.787 * x + 16/116)
-        y = torch.where(y > 0.008856, y ** (1/3), 7.787 * y + 16/116)
-        z = torch.where(z > 0.008856, z ** (1/3), 7.787 * z + 16/116)
-        return torch.stack([116 * y - 16, 500 * (x - y), 200 * (y - z)], dim=-1)
+        return {
+            "required": {
+                "image_ref": ("IMAGE",),      # 参考图（提供配色）
+                "image_target": ("IMAGE",),   # 目标图（需要改色）
+                "method": ([
+                    "mkl", 
+                    "hm", 
+                    "reinhard", 
+                    "mvgd", 
+                    "hm-mvgd-hm", 
+                    "hm-mkl-hm"
+                ], {"default": "mkl"}),
+            },
+        }
 
-    def lab2rgb(self, image):
-        l, a, b = image[..., 0], image[..., 1], image[..., 2]
-        y = (l + 16) / 116
-        x = a / 500 + y
-        z = y - b / 200
-        x = torch.where(x ** 3 > 0.008856, x ** 3, (x - 16/116) / 7.787)
-        y = torch.where(y ** 3 > 0.008856, y ** 3, (y - 16/116) / 7.787)
-        z = torch.where(z ** 3 > 0.008856, z ** 3, (z - 16/116) / 7.787)
-        x, y, z = x * 0.95047, y * 1.00000, z * 1.08883
-        r = x * 3.2406 + y * -1.5372 + z * -0.4986
-        g = x * -0.9689 + y * 1.8758 + z * 0.0415
-        b = x * 0.0557 + y * -0.2040 + z * 1.0570
-        r = torch.where(r > 0.0031308, 1.055 * (r ** (1/2.4)) - 0.055, 12.92 * r)
-        g = torch.where(g > 0.0031308, 1.055 * (g ** (1/2.4)) - 0.055, 12.92 * g)
-        b = torch.where(b > 0.0031308, 1.055 * (b ** (1/2.4)) - 0.055, 12.92 * b)
-        return torch.stack([r, g, b], dim=-1)
+    RETURN_TYPES = ("IMAGE",)
+    RETURN_NAMES = ("image",)
+    FUNCTION = "color_match"
+    CATEGORY = "EasyUse_Ported"  # 你可以修改为你项目中的分类名称
 
-    def execute(self, image, reference, method):
-        if image.shape[0] == 0 or reference.shape[0] == 0: return (image,)
+    def color_match(self, image_ref, image_target, method):
+        # 1. 准备 ColorMatcher 实例
+        cm = ColorMatcher()
         
-        # Resize reference to match image size for pixel-wise operations if needed, though statistical methods don't strictly require it
-        # But for consistency in batch processing, we keep them separate or resize if needed.
-        # Here we process batch-wise.
-        
-        res = []
-        for i in range(image.shape[0]):
-            img = image[i]
-            ref = reference[i % reference.shape[0]]
-            
-            # Convert to LAB
-            img_lab = self.rgb2lab(img)
-            ref_lab = self.rgb2lab(ref)
-            
-            if method == "reinhard":
-                # Compute mean and std in LAB space
-                img_mean, img_std = torch.mean(img_lab, dim=(0, 1)), torch.std(img_lab, dim=(0, 1))
-                ref_mean, ref_std = torch.mean(ref_lab, dim=(0, 1)), torch.std(ref_lab, dim=(0, 1))
+        # 2. ComfyUI Tensor (B,H,W,C) -> Numpy (B,H,W,C)
+        # 注意：ComfyUI 图片是 0-1 float，color-matcher 最好处理 0-255 uint8
+        target_images = image_target.cpu().numpy()
+        ref_images = image_ref.cpu().numpy()
+
+        # 确保数据至少是 4D (Batch, Height, Width, Channel)
+        if target_images.ndim == 3: target_images = target_images[None, ...]
+        if ref_images.ndim == 3: ref_images = ref_images[None, ...]
+
+        batch_size = target_images.shape[0]
+        out_images = []
+
+        # 3. 批处理循环
+        for i in range(batch_size):
+            # 获取单张图片
+            target_img = target_images[i]
+            # 如果参考图数量少于目标图，则循环使用参考图
+            ref_img = ref_images[i % ref_images.shape[0]]
+
+            # 转换为 uint8 [0, 255]
+            # 使用 clip 确保数值不越界，防止颜色崩坏
+            target_img_uint8 = (target_img * 255).clip(0, 255).astype(np.uint8)
+            ref_img_uint8 = (ref_img * 255).clip(0, 255).astype(np.uint8)
+
+            try:
+                # 4. 核心调用：执行色彩迁移
+                # src=要改变的图, ref=参考颜色的图
+                matched_img_uint8 = cm.transfer(
+                    src=target_img_uint8, 
+                    ref=ref_img_uint8, 
+                    method=method
+                )
                 
-                # Transfer statistics
-                res_lab = (img_lab - img_mean) * (ref_std / (img_std + 1e-6)) + ref_mean
-                res.append(self.lab2rgb(res_lab))
-                
-            elif method == "hm":
-                # Histogram matching in LAB space per channel
-                res_lab = torch.zeros_like(img_lab)
-                for c in range(3):
-                    src_flat = img_lab[..., c].view(-1)
-                    ref_flat = ref_lab[..., c].view(-1)
-                    src_val, src_idx = src_flat.sort()
-                    ref_val, _ = ref_flat.sort()
-                    # Interpolate reference values to match source length
-                    if len(ref_val) != len(src_val):
-                        ref_val = F.interpolate(ref_val.view(1, 1, -1), size=len(src_val), mode='linear', align_corners=True).view(-1)
+                # 防御性编程：如果算法返回 None（极少数情况），回退到原图
+                if matched_img_uint8 is None:
+                    matched_img_uint8 = target_img_uint8
                     
-                    src_idx_inv = torch.argsort(src_idx)
-                    res_lab[..., c] = torch.gather(ref_val, 0, src_idx_inv).view(img_lab.shape[:2])
-                res.append(self.lab2rgb(res_lab))
-            
-            else:
-                # Fallback or other methods (simplified for now to use Reinhard as base for others or keep original if complex)
-                # For MKL and others, they are computationally heavy in Python without optimized libraries.
-                # Given the requirement for speed and lightness, we stick to optimized Reinhard/HM in LAB.
-                # If method is unknown or complex, default to Reinhard in LAB which is robust.
-                img_mean, img_std = torch.mean(img_lab, dim=(0, 1)), torch.std(img_lab, dim=(0, 1))
-                ref_mean, ref_std = torch.mean(ref_lab, dim=(0, 1)), torch.std(ref_lab, dim=(0, 1))
-                res_lab = (img_lab - img_mean) * (ref_std / (img_std + 1e-6)) + ref_mean
-                res.append(self.lab2rgb(res_lab))
+            except Exception as e:
+                print(f"[EHN_ColorMatch] Error processing batch {i}: {e}")
+                matched_img_uint8 = target_img_uint8
 
-        return (torch.stack(res).clamp(0, 1),)
+            # 5. 转回 Float32 [0, 1]
+            matched_img = matched_img_uint8.astype(np.float32) / 255.0
+            out_images.append(matched_img)
+
+        # 6. 堆叠回 Tensor 并返回
+        if not out_images:
+            return (image_target,)
+            
+        result = torch.from_numpy(np.array(out_images))
+        return (result,)
