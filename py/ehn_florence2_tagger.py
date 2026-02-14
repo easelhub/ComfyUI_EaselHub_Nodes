@@ -24,7 +24,6 @@ class EHN_Florence2Tagger:
     def tag(self, model, image, method, max_tokens, random):
         dev, dtype = mm.get_torch_device(), torch.float16
         mp = os.path.join(folder_paths.models_dir, "Florence-2", model)
-        repo_model = model.replace("v2_0", "v2.0")
         if not os.path.exists(mp):
             from huggingface_hub import snapshot_download
             snapshot_download(repo_id=f"MiaoshouAI/{model}", local_dir=mp)
