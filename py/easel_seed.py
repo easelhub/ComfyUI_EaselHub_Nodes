@@ -1,6 +1,6 @@
 import random, time
-class EHN_Seed:
-    NAME, CATEGORY = "EHN_Seed", "EaselHub/Utils"
+class Easel_Seed:
+    NAME, CATEGORY = "Easel_Seed", "EaselHub/Utils"
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {"seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff})}, "hidden": {"prompt": "PROMPT", "extra_pnginfo": "EXTRA_PNGINFO", "unique_id": "UNIQUE_ID"}}

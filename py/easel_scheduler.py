@@ -2,7 +2,7 @@ import math, torch
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
 from comfy.samplers import SchedulerHandler, SCHEDULER_HANDLERS, SCHEDULER_NAMES, KSampler
 
-class EHN_FlowMatchEulerScheduler:
+class Easel_FlowMatchEulerScheduler:
     CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Scheduler", ("SIGMAS",), ("sigmas",), "create"
     @classmethod
     def INPUT_TYPES(s):

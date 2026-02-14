@@ -13,43 +13,43 @@ try:
         if missing: subprocess.check_call([sys.executable, "-m", "pip", "install", *missing])
 except: pass
 
-from .py.ehn_image_comparer import EHN_ImageComparer
-from .py.ehn_image_tile import EHN_ImageTileBatch, EHN_ImageAssembly
-from .py.ehn_florence2_tagger import EHN_Florence2Tagger
-from .py.ehn_image_resize import EHN_ImageResize
-from .py.ehn_prompt_utils import EHN_PromptProcess
-from .py.ehn_scheduler import EHN_FlowMatchEulerScheduler
-from .py.ehn_group_manager import EHN_GroupManager
-from .py.ehn_seed import EHN_Seed
-from .py.ehn_color_match import EHN_ColorMatch
-from .py.ehn_model_bus import EHN_ModelBus
+from .py.easel_image_comparer import Easel_ImageComparer
+from .py.easel_image_tile import Easel_ImageTileBatch, Easel_ImageAssembly
+from .py.easel_florence2_tagger import Easel_Florence2Tagger
+from .py.easel_image_resize import Easel_ImageResize
+from .py.easel_prompt_utils import Easel_PromptProcess
+from .py.easel_scheduler import Easel_FlowMatchEulerScheduler
+from .py.easel_group_manager import Easel_GroupManager
+from .py.easel_seed import Easel_Seed
+from .py.easel_color_match import Easel_ColorMatch
+from .py.easel_model_bus import Easel_ModelBus
 
 NODE_CLASS_MAPPINGS = {
-    "EHN_ImageComparer": EHN_ImageComparer,
-    "EHN_ImageTileBatch": EHN_ImageTileBatch,
-    "EHN_ImageAssembly": EHN_ImageAssembly,
-    "EHN_Florence2Tagger": EHN_Florence2Tagger,
-    "EHN_ImageResize": EHN_ImageResize,
-    "EHN_PromptProcess": EHN_PromptProcess,
-    "EHN_FlowMatchEulerScheduler": EHN_FlowMatchEulerScheduler,
-    "EHN_GroupManager": EHN_GroupManager,
-    "EHN_Seed": EHN_Seed,
-    "EHN_ColorMatch": EHN_ColorMatch,
-    "EHN_ModelBus": EHN_ModelBus
+    "Easel_ImageComparer": Easel_ImageComparer,
+    "Easel_ImageTileBatch": Easel_ImageTileBatch,
+    "Easel_ImageAssembly": Easel_ImageAssembly,
+    "Easel_Florence2Tagger": Easel_Florence2Tagger,
+    "Easel_ImageResize": Easel_ImageResize,
+    "Easel_PromptProcess": Easel_PromptProcess,
+    "Easel_FlowMatchEulerScheduler": Easel_FlowMatchEulerScheduler,
+    "Easel_GroupManager": Easel_GroupManager,
+    "Easel_Seed": Easel_Seed,
+    "Easel_ColorMatch": Easel_ColorMatch,
+    "Easel_ModelBus": Easel_ModelBus
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "EHN_ImageComparer": "🖼️ EHN Image Comparer",
-    "EHN_ImageTileBatch": "🧩 EHN Image Tile Batch",
-    "EHN_ImageAssembly": "🧩 EHN Image Assembly",
-    "EHN_Florence2Tagger": "🏷️ EHN Florence2 Tagger",
-    "EHN_ImageResize": "📏 EHN Image Resize",
-    "EHN_PromptProcess": "📝 EHN Prompt Process",
-    "EHN_FlowMatchEulerScheduler": "📅 EHN FlowMatch Euler Scheduler",
-    "EHN_GroupManager": "🔇 EHN Group Manager",
-    "EHN_Seed": "🌱 EHN Seed",
-    "EHN_ColorMatch": "🎨 EHN Color Match",
-    "EHN_ModelBus": "🚌 EHN Model Bus"
+    "Easel_ImageComparer": "🎨 Easel Image Comparer",
+    "Easel_ImageTileBatch": "🎨 Easel Image Tile Batch",
+    "Easel_ImageAssembly": "🎨 Easel Image Assembly",
+    "Easel_Florence2Tagger": "🎨 Easel Florence2 Tagger",
+    "Easel_ImageResize": "🎨 Easel Image Resize",
+    "Easel_PromptProcess": "🎨 Easel Prompt Process",
+    "Easel_FlowMatchEulerScheduler": "🎨 Easel FlowMatch Euler Scheduler",
+    "Easel_GroupManager": "🎨 Easel Group Manager",
+    "Easel_Seed": "🎨 Easel Seed",
+    "Easel_ColorMatch": "🎨 Easel Color Match",
+    "Easel_ModelBus": "🎨 Easel Model Bus"
 }
 
 WEB_DIRECTORY = "./js"
