@@ -100,9 +100,12 @@ class EHN_ImageComparerWidget {
         if (node.properties["comparer_mode"] === "Click") {
             this.drawImage(ctx, this.selected[node.isPointerDown ? 1 : 0], y);
         } else {
-            this.drawImage(ctx, this.selected[0], y);
+            // Draw Image B (Background, Right)
+            this.drawImage(ctx, this.selected[1], y);
+            
+            // Draw Image A (Foreground, Left, Cropped)
             const cropX = node.isPointerOver ? node.pointerOverPos[0] : (node.lastPointerPos ? node.lastPointerPos[0] : node.size[0] / 2);
-            this.drawImage(ctx, this.selected[1], y, cropX);
+            this.drawImage(ctx, this.selected[0], y, cropX);
         }
     }
 
@@ -157,6 +160,30 @@ class EHN_ImageComparerWidget {
             ctx.strokeStyle = "rgba(255,255,255, 1)";
             ctx.stroke();
         }
+        
+        // Draw Labels
+        ctx.globalCompositeOperation = "source-over";
+        ctx.font = "bold 24px Arial";
+        ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
+        ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
+        ctx.shadowBlur = 4;
+        
+        // Logic:
+        // Image A (selected[0]) is drawn with cropX (Left side).
+        // Image B (selected[1]) is drawn as background (Right side visible).
+        
+        if (cropX != null) {
+            // Drawing Left Image (A)
+            // Only draw label A if visible enough
+            if (cropX > 30) {
+                 ctx.fillText("A", 10, nodeHeight - 10);
+            }
+        } else {
+            // Drawing Background Image (B)
+            // Always draw label B on the right
+            ctx.fillText("B", nodeWidth - 30, nodeHeight - 10);
+        }
+
         ctx.globalCompositeOperation = globalCompositeOperation;
         ctx.restore();
     }
