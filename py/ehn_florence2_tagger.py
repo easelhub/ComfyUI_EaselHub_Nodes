@@ -12,7 +12,7 @@ class EHN_Florence2Tagger:
     @classmethod
     def INPUT_TYPES(s):
         return {"required": {
-            "model": (['Florence-2-large-PromptGen-v2.0', 'Florence-2-base-PromptGen-v2.0'], {"default": "Florence-2-large-PromptGen-v2.0"}),
+            "model": (['Florence-2-large-PromptGen-v2.0'], {"default": "Florence-2-large-PromptGen-v2.0"}),
             "image": ("IMAGE",),
             "method": (['tags', 'simple', 'detailed', 'extra', 'mixed', 'extra_mixed'], {"default": "extra_mixed"}),
             "max_tokens": ("INT", {"default": 1024, "min": 1, "max": 4096}),
