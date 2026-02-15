@@ -41,7 +41,7 @@ class EHN_Florence2Tagger:
             img = Image.fromarray((img_tensor.cpu().numpy() * 255).astype('uint8'))
             inputs = p(text=pmt, images=img, return_tensors="pt").to(dev, dtype)
             with torch.no_grad():
-                out = m.generate(input_ids=inputs["input_ids"], pixel_values=inputs["pixel_values"], max_new_tokens=max_tokens, do_sample=random, num_beams=3 if not random else 1)
+                out = m.generate(input_ids=inputs["input_ids"], pixel_values=inputs["pixel_values"], max_new_tokens=max_tokens, do_sample=random, num_beams=3 if not random else 1, early_stopping=False)
             generated_text = p.batch_decode(out, skip_special_tokens=False)[0]
             parsed_answer = p.post_process_generation(generated_text, task=pmt, image_size=img.size)
             res.append(parsed_answer[pmt] if pmt in parsed_answer else generated_text)
