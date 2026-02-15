@@ -8,3 +8,4 @@ artist|photo
 katsuragi|photo
 misato|photo
 souryuu asuka langley|photo
+drawing|photo
