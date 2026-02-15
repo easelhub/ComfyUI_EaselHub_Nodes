@@ -1,0 +1,15 @@
+[project]
+name = "comfyui_easelhub_nodes"
+description = "EaselHub custom nodes for ComfyUI"
+version = "1.0.0"
+dependencies = [
+    "transformers>=4.49.0", 
+    "huggingface_hub",
+    "torch",
+    "numpy",
+    "Pillow",
+    "diffusers"
+]
+
+[project.urls]
+Repository = "https://github.com/EaselHub/ComfyUI_EaselHub_Nodes"

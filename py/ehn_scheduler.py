@@ -21,7 +21,12 @@ class EHN_FlowMatchEulerScheduler:
         s.set_timesteps(steps, device=dev)
         return (s.sigmas[start_at_step:min(end_at_step + 1, len(s.sigmas))],)
 
+def get_sigmas(m, s):
+    sc = FlowMatchEulerDiscreteScheduler()
+    sc.set_timesteps(s, device="cpu")
+    return sc.sigmas
+
 if "FlowMatchEulerDiscreteScheduler" not in SCHEDULER_HANDLERS:
-    SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler"] = SchedulerHandler(lambda m, s: FlowMatchEulerDiscreteScheduler().set_timesteps(s, device=m.device).sigmas, use_ms=True)
+    SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler"] = SchedulerHandler(get_sigmas, use_ms=True)
     SCHEDULER_NAMES.append("FlowMatchEulerDiscreteScheduler")
     if "FlowMatchEulerDiscreteScheduler" not in KSampler.SCHEDULERS: KSampler.SCHEDULERS.append("FlowMatchEulerDiscreteScheduler")
