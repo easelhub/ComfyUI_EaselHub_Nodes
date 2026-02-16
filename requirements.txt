@@ -1,6 +1,10 @@
 transformers==4.49.0
 huggingface_hub
+modelscope
 torch
 numpy
 Pillow
 diffusers
+ultralytics
+timm
+color_matcher
