@@ -23,7 +23,7 @@ from .py.ehn_group_manager import EHN_GroupManager
 from .py.ehn_seed import EHN_Seed
 from .py.ehn_color_match import EHN_ColorMatch
 from .py.ehn_model_bus import EHN_ModelBus
-from .py.ehn_segmentation import EHN_BiRefNet, EHN_SAM2
+from .py.ehn_segmentation import EHN_BiRefNet
 
 NODE_CLASS_MAPPINGS = {
     "EHN_ImageComparer": EHN_ImageComparer,
@@ -37,8 +37,7 @@ NODE_CLASS_MAPPINGS = {
     "EHN_Seed": EHN_Seed,
     "EHN_ColorMatch": EHN_ColorMatch,
     "EHN_ModelBus": EHN_ModelBus,
-    "EHN_BiRefNet": EHN_BiRefNet,
-    "EHN_SAM2": EHN_SAM2
+    "EHN_BiRefNet": EHN_BiRefNet
 }
 
 NODE_DISPLAY_NAME_MAPPINGS = {
@@ -53,8 +52,7 @@ NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_Seed": "🌱 EHN Global Seed",
     "EHN_ColorMatch": "🎨 EHN Color Transfer",
     "EHN_ModelBus": "🚌 EHN Model Bus",
-    "EHN_BiRefNet": "✂️ EHN BiRefNet (Best Matte)",
-    "EHN_SAM2": "🎯 EHN SAM2 (Select Object)"
+    "EHN_BiRefNet": "✂️ EHN BiRefNet (Best Matte)"
 }
 
 WEB_DIRECTORY = "./js"
