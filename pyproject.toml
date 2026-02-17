@@ -8,7 +8,10 @@ dependencies = [
     "torch",
     "numpy",
     "Pillow",
-    "diffusers"
+    "diffusers",
+    "timm",
+    "einops",
+    "scikit-image"
 ]
 
 [project.urls]

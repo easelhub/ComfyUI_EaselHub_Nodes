@@ -22,12 +22,8 @@ class EHN_Florence2Tagger:
         dev, dtype = mm.get_torch_device(), torch.float16 if mm.should_use_fp16() else torch.float32
         mp = os.path.join(folder_paths.models_dir, "Florence-2", model)
         if not os.path.exists(mp) or not os.listdir(mp):
-            try:
-                from modelscope.hub.snapshot_download import snapshot_download
-                snapshot_download(f"cutemodel/{model}", local_dir=mp)
-            except:
-                from huggingface_hub import snapshot_download
-                snapshot_download(repo_id=f"MiaoshouAI/{model}", local_dir=mp)
+            from huggingface_hub import snapshot_download
+            snapshot_download(repo_id=f"MiaoshouAI/{model}", local_dir=mp)
         
         with patch("transformers.dynamic_module_utils.get_imports", fgi):
             m = AutoModelForCausalLM.from_pretrained(mp, attn_implementation='sdpa', device_map=dev, torch_dtype=dtype, trust_remote_code=True).eval()
