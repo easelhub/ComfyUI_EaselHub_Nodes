@@ -9,128 +9,82 @@ class EHN_ImageResize:
         return {
             "required": {
                 "image": ("IMAGE",),
-                "width": ("INT", { "default": 512, "min": 0, "max": MAX_RESOLUTION, "step": 1, }),
-                "height": ("INT", { "default": 512, "min": 0, "max": MAX_RESOLUTION, "step": 1, }),
-                "interpolation": (["nearest", "bilinear", "bicubic", "area", "nearest-exact", "lanczos"],),
-                "method": (["stretch", "keep proportion", "fill / crop", "pad"],),
-                "condition": (["always", "downscale if bigger", "upscale if smaller", "if bigger area", "if smaller area"],),
-                "multiple_of": ("INT", { "default": 0, "min": 0, "max": 512, "step": 1, }),
+                "width": ("INT", {"default": 1024, "min": 0, "max": MAX_RESOLUTION, "step": 8}),
+                "height": ("INT", {"default": 1024, "min": 0, "max": MAX_RESOLUTION, "step": 8}),
+                "upscale_method": (["nearest-exact", "bilinear", "area", "bicubic", "lanczos"], {"default": "nearest-exact"}),
+                "resize_mode": (["stretch", "keep_ratio", "fill_crop", "pad"], {"default": "keep_ratio"}),
+                "condition": (["always", "downscale_only", "upscale_only"], {"default": "always"}),
+                "multiple_of": ("INT", {"default": 8, "min": 0, "max": 512, "step": 1})
             },
-            "optional": {
-                "mask": ("MASK",),
-            }
+            "optional": {"mask": ("MASK",)}
         }
 
-    RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT",)
-    RETURN_NAMES = ("IMAGE", "MASK", "width", "height",)
+    RETURN_TYPES = ("IMAGE", "MASK", "INT", "INT")
+    RETURN_NAMES = ("image", "mask", "width", "height")
     FUNCTION = "execute"
     CATEGORY = "EaselHub/Image"
 
-    def execute(self, image, width, height, method="stretch", interpolation="nearest", condition="always", multiple_of=0, mask=None):
-        _, oh, ow, _ = image.shape
-        x = y = x2 = y2 = 0
-        pad_left = pad_right = pad_top = pad_bottom = 0
-
-        if multiple_of > 1:
+    def execute(self, image, width, height, upscale_method="nearest-exact", resize_mode="keep_ratio", condition="always", multiple_of=8, mask=None):
+        B, H, W, C = image.shape
+        if multiple_of > 1 and width > 0 and height > 0:
             width = width - (width % multiple_of)
             height = height - (height % multiple_of)
-
-        if method == 'keep proportion' or method == 'pad':
-            if width == 0 and oh < height:
-                width = MAX_RESOLUTION
-            elif width == 0 and oh >= height:
-                width = ow
-
-            if height == 0 and ow < width:
-                height = MAX_RESOLUTION
-            elif height == 0 and ow >= width:
-                height = oh
-
-            ratio = min(width / ow, height / oh)
-            new_width = round(ow*ratio)
-            new_height = round(oh*ratio)
-
-            if method == 'pad':
-                pad_left = (width - new_width) // 2
-                pad_right = width - new_width - pad_left
-                pad_top = (height - new_height) // 2
-                pad_bottom = height - new_height - pad_top
-
-            width = new_width
-            height = new_height
-        elif method.startswith('fill'):
-            width = width if width > 0 else ow
-            height = height if height > 0 else oh
-
-            ratio = max(width / ow, height / oh)
-            new_width = round(ow*ratio)
-            new_height = round(oh*ratio)
-            x = (new_width - width) // 2
-            y = (new_height - height) // 2
-            x2 = x + width
-            y2 = y + height
-            if x2 > new_width:
-                x -= (x2 - new_width)
-            if x < 0:
-                x = 0
-            if y2 > new_height:
-                y -= (y2 - new_height)
-            if y < 0:
-                y = 0
-            width = new_width
-            height = new_height
-        else:
-            width = width if width > 0 else ow
-            height = height if height > 0 else oh
-
-        outputs = image
-        outputs_mask = mask
-
-        if "always" in condition \
-            or ("downscale if bigger" == condition and (oh > height or ow > width)) or ("upscale if smaller" == condition and (oh < height or ow < width)) \
-            or ("bigger area" in condition and (oh * ow > height * width)) or ("smaller area" in condition and (oh * ow < height * width)):
-
-            outputs = image.permute(0,3,1,2)
-            if interpolation == "lanczos":
-                outputs = comfy.utils.lanczos(outputs, width, height)
-            else:
-                outputs = F.interpolate(outputs, size=(height, width), mode=interpolation)
-            
-            if mask is not None:
-                outputs_mask = mask.unsqueeze(1)
-                if interpolation == "lanczos":
-                    outputs_mask = comfy.utils.lanczos(outputs_mask, width, height)
-                else:
-                    outputs_mask = F.interpolate(outputs_mask, size=(height, width), mode=interpolation)
-                outputs_mask = outputs_mask.squeeze(1)
-
-            if method == 'pad':
-                if pad_left > 0 or pad_right > 0 or pad_top > 0 or pad_bottom > 0:
-                    outputs = F.pad(outputs, (pad_left, pad_right, pad_top, pad_bottom), value=0)
-                    if outputs_mask is not None:
-                        outputs_mask = F.pad(outputs_mask, (pad_left, pad_right, pad_top, pad_bottom), value=0)
-
-            outputs = outputs.permute(0,2,3,1)
-
-            if method.startswith('fill'):
-                if x > 0 or y > 0 or x2 > 0 or y2 > 0:
-                    outputs = outputs[:, y:y2, x:x2, :]
-                    if outputs_mask is not None:
-                        outputs_mask = outputs_mask[:, y:y2, x:x2]
-
-        if multiple_of > 1 and (outputs.shape[2] % multiple_of != 0 or outputs.shape[1] % multiple_of != 0):
-            width = outputs.shape[2]
-            height = outputs.shape[1]
-            x = (width % multiple_of) // 2
-            y = (height % multiple_of) // 2
-            x2 = width - ((width % multiple_of) - x)
-            y2 = height - ((height % multiple_of) - y)
-            outputs = outputs[:, y:y2, x:x2, :]
-            if outputs_mask is not None:
-                outputs_mask = outputs_mask[:, y:y2, x:x2]
         
-        outputs = torch.clamp(outputs, 0, 1)
-        if outputs_mask is not None:
-            outputs_mask = torch.clamp(outputs_mask, 0, 1)
+        oh, ow = H, W
+        if resize_mode == 'keep_ratio':
+            r = min(width / W, height / H) if width > 0 and height > 0 else (width/W if width>0 else height/H)
+            width, height = round(W * r), round(H * r)
+        elif resize_mode == 'pad':
+            r = min(width / W, height / H)
+            nw, nh = round(W * r), round(H * r)
+            pad_l, pad_t = (width - nw) // 2, (height - nh) // 2
+            pad_r, pad_b = width - nw - pad_l, height - nh - pad_t
+            width, height = nw, nh 
+        elif resize_mode == 'fill_crop':
+            r = max(width / W, height / H)
+            nw, nh = round(W * r), round(H * r)
+            crop_x, crop_y = (nw - width) // 2, (nh - height) // 2
+            width, height = nw, nh
 
-        return(outputs, outputs_mask, outputs.shape[2], outputs.shape[1],)
+        if "always" not in condition:
+            if ("downscale_only" == condition and (H < height or W < width)) or ("upscale_only" == condition and (H > height or W > width)):
+                return (image, mask, W, H)
+
+        img = image.permute(0, 3, 1, 2)
+        if upscale_method == "lanczos":
+            img = comfy.utils.lanczos(img, width, height)
+        else:
+            img = F.interpolate(img, size=(height, width), mode=upscale_method)
+        
+        if mask is not None:
+            msk = mask.unsqueeze(1)
+            if upscale_method == "lanczos":
+                msk = comfy.utils.lanczos(msk, width, height)
+            else:
+                msk = F.interpolate(msk, size=(height, width), mode=upscale_method)
+            msk = msk.squeeze(1)
+        else:
+            msk = None
+
+        if resize_mode == 'pad':
+            img = F.pad(img, (pad_l, pad_r, pad_t, pad_b), value=0)
+            if msk is not None: msk = F.pad(msk, (pad_l, pad_r, pad_t, pad_b), value=0)
+            width += pad_l + pad_r
+            height += pad_t + pad_b
+        
+        img = img.permute(0, 2, 3, 1)
+
+        if resize_mode == 'fill_crop':
+            img = img[:, crop_y:crop_y + height - ((nh - height) if nh > height else 0), crop_x:crop_x + width - ((nw - width) if nw > width else 0), :]
+            if msk is not None: msk = msk[:, crop_y:crop_y + height - ((nh - height) if nh > height else 0), crop_x:crop_x + width - ((nw - width) if nw > width else 0)]
+            width = img.shape[2]
+            height = img.shape[1]
+
+        if multiple_of > 1:
+            h, w = img.shape[1], img.shape[2]
+            if h % multiple_of != 0 or w % multiple_of != 0:
+                 img = img[:, :h - (h % multiple_of), :w - (w % multiple_of), :]
+                 if msk is not None: msk = msk[:, :h - (h % multiple_of), :w - (w % multiple_of)]
+                 width, height = img.shape[2], img.shape[1]
+
+        return (torch.clamp(img, 0, 1), torch.clamp(msk, 0, 1) if msk is not None else None, width, height)
