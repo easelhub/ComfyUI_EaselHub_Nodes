@@ -18,6 +18,7 @@ app.registerExtension({
             };
 
             nodeType.prototype.updateInputs = function() {
+                if (!this.inputs) return;
                 for (let i = this.inputs.length - 2; i >= 0; i--) {
                     if (!this.inputs[i].link) this.removeInput(i);
                 }
@@ -59,8 +60,8 @@ app.registerExtension({
                             if (busSources[v[0]] && !output[id].inputs[k]) output[id].inputs[k] = busSources[v[0]];
                         }
                     };
-                    inject(output[id].inputs, def.input.required);
-                    inject(output[id].inputs, def.input.optional);
+                    if (def.input.required) inject(output[id].inputs, def.input.required);
+                    if (def.input.optional) inject(output[id].inputs, def.input.optional);
                 }
             }
             return originalQueuePrompt.apply(this, arguments);
