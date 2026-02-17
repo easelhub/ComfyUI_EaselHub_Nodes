@@ -134,15 +134,14 @@ class EHN_ImageComparerWidget {
             ctx.stroke();
         }
         ctx.globalCompositeOperation = "source-over";
-        ctx.font = "bold 24px Arial";
+        ctx.font = "bold 16px Arial";
         ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
         ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
         ctx.shadowBlur = 4;
-        if (cropX != null) {
-            if (cropX > 30) ctx.fillText("A", 10, nodeHeight - 10);
-        } else {
-            ctx.fillText("B", nodeWidth - 30, nodeHeight - 10);
-        }
+        ctx.textAlign = "left";
+        ctx.fillText("A", 5, nodeHeight - 5);
+        ctx.textAlign = "right";
+        ctx.fillText("B", nodeWidth - 5, nodeHeight - 5);
         ctx.globalCompositeOperation = globalCompositeOperation;
         ctx.restore();
     }
