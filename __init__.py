@@ -42,8 +42,8 @@ NODE_CLASS_MAPPINGS = {
 
 NODE_DISPLAY_NAME_MAPPINGS = {
     "EHN_ImageComparer": "🖼️ EHN Image Split View",
-    "EHN_ImageTileBatch": "🧩 EHN Image Tiler",
-    "EHN_ImageAssembly": "🧩 EHN Image Assembler",
+    "EHN_ImageTileBatch": "🧩 EHN Image Tile",
+    "EHN_ImageAssembly": "🧩 EHN Image Assembly",
     "EHN_Florence2Tagger": "🏷️ EHN Florence2 Captioner",
     "EHN_ImageResize": "📏 EHN Smart Resize",
     "EHN_PromptProcess": "📝 EHN Prompt Mixer",
