@@ -20,9 +20,7 @@ class EHN_ImageComparerWidget {
         let cleanedVal;
         if (Array.isArray(v)) {
             cleanedVal = v.map((d, i) => {
-                if (!d || typeof d === "string") {
-                    d = { url: d, name: i == 0 ? "A" : "B", selected: true };
-                }
+                if (!d || typeof d === "string") d = { url: d, name: i == 0 ? "A" : "B", selected: true };
                 return d;
             });
         } else {
@@ -30,26 +28,18 @@ class EHN_ImageComparerWidget {
         }
         if (cleanedVal.length > 2) {
             const hasAAndB = cleanedVal.some((i) => i.name.startsWith("A")) && cleanedVal.some((i) => i.name.startsWith("B"));
-            if (!hasAAndB) {
-                cleanedVal = [cleanedVal[0], cleanedVal[1]];
-            }
+            if (!hasAAndB) cleanedVal = [cleanedVal[0], cleanedVal[1]];
         }
         let selected = cleanedVal.filter((d) => d.selected);
-        if (!selected.length && cleanedVal.length) {
-            cleanedVal[0].selected = true;
-        }
+        if (!selected.length && cleanedVal.length) cleanedVal[0].selected = true;
         selected = cleanedVal.filter((d) => d.selected);
-        if (selected.length === 1 && cleanedVal.length > 1) {
-            cleanedVal.find((d) => !d.selected).selected = true;
-        }
+        if (selected.length === 1 && cleanedVal.length > 1) cleanedVal.find((d) => !d.selected).selected = true;
         this._value.images = cleanedVal;
         selected = cleanedVal.filter((d) => d.selected);
         this.setSelected(selected);
     }
 
-    get value() {
-        return this._value;
-    }
+    get value() { return this._value; }
 
     setSelected(selected) {
         this._value.images.forEach((d) => (d.selected = false));
@@ -75,24 +65,15 @@ class EHN_ImageComparerWidget {
             const spacing = 5;
             let x = 0;
             for (const img of this.value.images) {
-                const width = ctx.measureText(img.name).width;
-                drawData.push({
-                    img,
-                    text: img.name,
-                    x,
-                    width: width,
-                });
-                x += width + spacing;
+                const w = ctx.measureText(img.name).width;
+                drawData.push({ img, text: img.name, x, width: w });
+                x += w + spacing;
             }
             x = (node.size[0] - (x - spacing)) / 2;
             for (const d of drawData) {
                 ctx.fillStyle = d.img.selected ? "rgba(180, 180, 180, 1)" : "rgba(180, 180, 180, 0.5)";
                 ctx.fillText(d.text, x, y);
-                this.hitAreas[d.text] = {
-                    bounds: [x, y, d.width, 14],
-                    data: d.img,
-                    onDown: this.onSelectionDown.bind(this),
-                };
+                this.hitAreas[d.text] = { bounds: [x, y, d.width, 14], data: d.img, onDown: this.onSelectionDown.bind(this) };
                 x += d.width + spacing;
             }
             y += 20;
@@ -100,10 +81,7 @@ class EHN_ImageComparerWidget {
         if (node.properties["comparer_mode"] === "Click") {
             this.drawImage(ctx, this.selected[node.isPointerDown ? 1 : 0], y);
         } else {
-            // Draw Image B (Background, Right)
             this.drawImage(ctx, this.selected[1], y);
-            
-            // Draw Image A (Foreground, Left, Cropped)
             const cropX = node.isPointerOver ? node.pointerOverPos[0] : (node.lastPointerPos ? node.lastPointerPos[0] : node.size[0] / 2);
             this.drawImage(ctx, this.selected[0], y, cropX);
         }
@@ -111,11 +89,8 @@ class EHN_ImageComparerWidget {
 
     onSelectionDown(event, pos, node, bounds) {
         const selected = [...this.selected];
-        if (bounds?.data.name.startsWith("A")) {
-            selected[0] = bounds.data;
-        } else if (bounds?.data.name.startsWith("B")) {
-            selected[1] = bounds.data;
-        }
+        if (bounds?.data.name.startsWith("A")) selected[0] = bounds.data;
+        else if (bounds?.data.name.startsWith("B")) selected[1] = bounds.data;
         this.setSelected(selected);
     }
 
@@ -125,8 +100,7 @@ class EHN_ImageComparerWidget {
         const imageAspect = image.img.naturalWidth / image.img.naturalHeight;
         let height = nodeHeight - y;
         const widgetAspect = nodeWidth / height;
-        let targetWidth, targetHeight;
-        let offsetX = 0;
+        let targetWidth, targetHeight, offsetX = 0;
         if (imageAspect > widgetAspect) {
             targetWidth = nodeWidth;
             targetHeight = nodeWidth / imageAspect;
@@ -136,8 +110,7 @@ class EHN_ImageComparerWidget {
             offsetX = (nodeWidth - targetWidth) / 2;
         }
         const widthMultiplier = image.img.naturalWidth / targetWidth;
-        const sourceX = 0;
-        const sourceY = 0;
+        const sourceX = 0, sourceY = 0;
         const sourceWidth = cropX != null ? (cropX - offsetX) * widthMultiplier : image.img.naturalWidth;
         const sourceHeight = image.img.naturalHeight;
         const destX = (nodeWidth - targetWidth) / 2;
@@ -160,37 +133,21 @@ class EHN_ImageComparerWidget {
             ctx.strokeStyle = "rgba(255,255,255, 1)";
             ctx.stroke();
         }
-        
-        // Draw Labels
         ctx.globalCompositeOperation = "source-over";
         ctx.font = "bold 24px Arial";
         ctx.fillStyle = "rgba(255, 255, 255, 0.8)";
         ctx.shadowColor = "rgba(0, 0, 0, 0.8)";
         ctx.shadowBlur = 4;
-        
-        // Logic:
-        // Image A (selected[0]) is drawn with cropX (Left side).
-        // Image B (selected[1]) is drawn as background (Right side visible).
-        
         if (cropX != null) {
-            // Drawing Left Image (A)
-            // Only draw label A if visible enough
-            if (cropX > 30) {
-                 ctx.fillText("A", 10, nodeHeight - 10);
-            }
+            if (cropX > 30) ctx.fillText("A", 10, nodeHeight - 10);
         } else {
-            // Drawing Background Image (B)
-            // Always draw label B on the right
             ctx.fillText("B", nodeWidth - 30, nodeHeight - 10);
         }
-
         ctx.globalCompositeOperation = globalCompositeOperation;
         ctx.restore();
     }
 
-    computeSize(width) {
-        return [width, 20];
-    }
+    computeSize(width) { return [width, 20]; }
 
     serializeValue(node, index) {
         const v = [];
@@ -205,8 +162,7 @@ class EHN_ImageComparerWidget {
     mouse(event, pos, node) {
         if (event.type == "pointerdown") {
             for (const part of Object.values(this.hitAreas)) {
-                if (pos[0] >= part.bounds[0] && pos[0] <= part.bounds[0] + part.bounds[2] &&
-                    pos[1] >= part.bounds[1] && pos[1] <= part.bounds[1] + part.bounds[3]) {
+                if (pos[0] >= part.bounds[0] && pos[0] <= part.bounds[0] + part.bounds[2] && pos[1] >= part.bounds[1] && pos[1] <= part.bounds[1] + part.bounds[3]) {
                     if (part.onDown) {
                         part.onDown(event, pos, node, part);
                         return true;
@@ -238,11 +194,7 @@ app.registerExtension({
                 if ("images" in output) {
                     this.canvasWidget.value = {
                         images: (output.images || []).map((d, i) => {
-                            return {
-                                name: i === 0 ? "A" : "B",
-                                selected: true,
-                                url: imageDataToUrl(d),
-                            };
+                            return { name: i === 0 ? "A" : "B", selected: true, url: imageDataToUrl(d) };
                         }),
                     };
                 } else {
@@ -250,20 +202,8 @@ app.registerExtension({
                     output.b_images = output.b_images || [];
                     const imagesToChoose = [];
                     const multiple = output.a_images.length + output.b_images.length > 2;
-                    for (const [i, d] of output.a_images.entries()) {
-                        imagesToChoose.push({
-                            name: output.a_images.length > 1 || multiple ? `A${i + 1}` : "A",
-                            selected: i === 0,
-                            url: imageDataToUrl(d),
-                        });
-                    }
-                    for (const [i, d] of output.b_images.entries()) {
-                        imagesToChoose.push({
-                            name: output.b_images.length > 1 || multiple ? `B${i + 1}` : "B",
-                            selected: i === 0,
-                            url: imageDataToUrl(d),
-                        });
-                    }
+                    for (const [i, d] of output.a_images.entries()) imagesToChoose.push({ name: output.a_images.length > 1 || multiple ? `A${i + 1}` : "A", selected: i === 0, url: imageDataToUrl(d) });
+                    for (const [i, d] of output.b_images.entries()) imagesToChoose.push({ name: output.b_images.length > 1 || multiple ? `B${i + 1}` : "B", selected: i === 0, url: imageDataToUrl(d) });
                     this.canvasWidget.value = { images: imagesToChoose };
                 }
             };
@@ -275,27 +215,11 @@ app.registerExtension({
                 }
             };
 
-            nodeType.prototype.onMouseDown = function (event, pos, canvas) {
-                this.isPointerDown = true;
-                return false;
-            };
-
-            nodeType.prototype.onMouseEnter = function (event) {
-                this.isPointerDown = !!app.canvas.pointer_is_down;
-                this.isPointerOver = true;
-            };
-
-            nodeType.prototype.onMouseLeave = function (event) {
-                this.isPointerDown = false;
-                this.isPointerOver = false;
-            };
-
-            nodeType.prototype.onMouseMove = function (event, pos, canvas) {
-                this.pointerOverPos = [...pos];
-                this.lastPointerPos = [...pos];
-            };
+            nodeType.prototype.onMouseDown = function (event, pos, canvas) { this.isPointerDown = true; return false; };
+            nodeType.prototype.onMouseEnter = function (event) { this.isPointerDown = !!app.canvas.pointer_is_down; this.isPointerOver = true; };
+            nodeType.prototype.onMouseLeave = function (event) { this.isPointerDown = false; this.isPointerOver = false; };
+            nodeType.prototype.onMouseMove = function (event, pos, canvas) { this.pointerOverPos = [...pos]; this.lastPointerPos = [...pos]; };
             
-            // Add property for comparer mode
             Object.defineProperty(nodeType.prototype, "comparer_mode", {
                 get() { return this.properties["comparer_mode"]; },
                 set(v) { this.properties["comparer_mode"] = v; }
