@@ -1,32 +1,25 @@
-import math, torch
+import torch
 from diffusers.schedulers.scheduling_flow_match_euler_discrete import FlowMatchEulerDiscreteScheduler
-from comfy.samplers import SchedulerHandler, SCHEDULER_HANDLERS, SCHEDULER_NAMES, KSampler
+from comfy.samplers import SCHEDULER_HANDLERS, SCHEDULER_NAMES, KSampler
 
-class EHN_FlowMatchEulerScheduler:
-    CATEGORY, RETURN_TYPES, RETURN_NAMES, FUNCTION = "EaselHub/Scheduler", ("SIGMAS",), ("sigmas",), "create"
-    @classmethod
-    def INPUT_TYPES(s):
-        return {"required": {
-            "steps": ("INT", {"default": 20, "min": 1, "max": 10000}),
-            "start_at_step": ("INT", {"default": 0, "min": 0, "max": 10000}),
-            "end_at_step": ("INT", {"default": 10000, "min": 0, "max": 10000}),
-            "shift": ("FLOAT", {"default": 3.0, "step": 0.01}),
-            "base_shift": ("FLOAT", {"default": 0.5, "step": 0.01}),
-            "max_shift": ("FLOAT", {"default": 1.15, "step": 0.01}),
-            "device": (["auto", "cuda", "cpu"], {"default": "auto"})
-        }}
-    def create(self, steps, start_at_step, end_at_step, shift, base_shift, max_shift, device="auto"):
-        dev = "cuda" if device == "auto" and torch.cuda.is_available() else "cpu" if device == "auto" else device
-        s = FlowMatchEulerDiscreteScheduler(shift=shift, base_shift=base_shift, max_shift=max_shift)
-        s.set_timesteps(steps, device=dev)
-        return (s.sigmas[start_at_step:min(end_at_step + 1, len(s.sigmas))],)
+def get_sigmas_sd3(m, s):
+    sc = FlowMatchEulerDiscreteScheduler(shift=3.0)
+    sc.set_timesteps(s, device="cpu")
+    return sc.sigmas
 
-def get_sigmas(m, s):
-    sc = FlowMatchEulerDiscreteScheduler()
+def get_sigmas_flux(m, s):
+    sc = FlowMatchEulerDiscreteScheduler(shift=1.0)
     sc.set_timesteps(s, device="cpu")
     return sc.sigmas
 
 if "FlowMatchEulerDiscreteScheduler" not in SCHEDULER_HANDLERS:
-    SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler"] = SchedulerHandler(get_sigmas, use_ms=True)
+    SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler"] = get_sigmas_sd3
     SCHEDULER_NAMES.append("FlowMatchEulerDiscreteScheduler")
     if "FlowMatchEulerDiscreteScheduler" not in KSampler.SCHEDULERS: KSampler.SCHEDULERS.append("FlowMatchEulerDiscreteScheduler")
+
+if "FlowMatchEulerDiscreteScheduler_Flux" not in SCHEDULER_HANDLERS:
+    SCHEDULER_HANDLERS["FlowMatchEulerDiscreteScheduler_Flux"] = get_sigmas_flux
+    SCHEDULER_NAMES.append("FlowMatchEulerDiscreteScheduler_Flux")
+    if "FlowMatchEulerDiscreteScheduler_Flux" not in KSampler.SCHEDULERS: KSampler.SCHEDULERS.append("FlowMatchEulerDiscreteScheduler_Flux")
+
+class EHN_FlowMatchEulerScheduler: pass
