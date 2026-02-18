@@ -160,7 +160,7 @@ __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
 5.2 命名规范
 ------------
 - 类名：使用驼峰命名法 (CamelCase)。
-- CATEGORY：尽量使用你的项目名作为一级目录，避免污染根目录。例如 "ComfyUI-Logic/Utils" 而不是直接 "Utils"。
+- CATEGORY：尽量使用你的项目名作为一级目录，避免污染根目录。例如 "ComfyUI-MyExtension/Utils" 而不是直接 "Utils"。
 - 输入参数名：尽量简短且具描述性。
 
 5.3 兼容性提示 (2026年更新)
