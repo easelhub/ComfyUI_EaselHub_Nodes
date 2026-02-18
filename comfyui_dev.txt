@@ -22,14 +22,15 @@ ComfyUI 在启动时会扫描该目录下的子文件夹，并加载其中的 `_
 
 推荐的文件结构：
 ComfyUI/
-  custom_nodes/
-    ComfyUI-MyExtension/       <-- 你的项目文件夹
-      __init__.py              <-- 入口文件 (必须)
-      my_node.py               <-- 节点逻辑实现 (核心)
-      requirements.txt         <-- 依赖包列表 (可选，但推荐)
-      README.md                <-- 说明文档
-      js/                      <-- (可选) 存放前端 .js 扩展
-        my_script.js
+    custom_nodes/
+        ComfyUI-MyExtension/       <-- 你的项目文件夹
+            __init__.py              <-- 入口文件 (必须)
+            nodes/                   <-- 节点逻辑实现 (核心)
+                node.py
+            requirements.txt         <-- 依赖包列表 (可选，但推荐)
+            README.md                <-- 说明文档
+            web/                      <-- (可选) 存放前端 .js 扩展
+                my_script.js
 
 --------------------------------------------------------------------------------
 
