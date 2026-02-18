@@ -1,187 +1,220 @@
 ================================================================================
-ComfyUI 自定义节点 (Custom Node) 开发指南 [2026版]
+ComfyUI 自定义节点 (Custom Node) 开发指南 [2026 终极版]
 ================================================================================
-来源：ComfyUI 官方文档 & 社区最新最佳实践
-整理时间：2026年2月
-适用版本：ComfyUI v0.3+ (及兼容版本)
+适用场景：本地自用开发、高级工作流定制
+文档版本：v2.0 (2026.02)
+参考核心：ComfyUI V3 Schema API & 经典 V1 API
 
 目录
 --------------------------------------------------------------------------------
-1. 概述与目录结构
-2. 核心：定义一个 Python 节点
-3. 进阶：数据类型与处理逻辑
-4. 进阶：前端扩展 (Javascript)
-5. 最佳实践与发布规范
-6. 实战案例：创建一个简单的图像处理节点
+1. 快速入门：文件结构与环境
+2. 经典标准：V1 节点开发 (最稳定，社区主流)
+3. 未来标准：V3 节点开发 (2026新架构，类型安全)
+4. 前端扩展：Javascript 动态交互 (隐藏/显示控件)
+5. 调试与热重载技巧 (本地开发必备)
+6. 附录：完整代码模板
 --------------------------------------------------------------------------------
 
-1. 概述与目录结构
+1. 快速入门：文件结构与环境
 ================================================================================
-ComfyUI 的扩展性极强，所有自定义节点都存放在 `ComfyUI/custom_nodes/` 目录下。
-ComfyUI 在启动时会扫描该目录下的子文件夹，并加载其中的 `__init__.py` 文件。
+所有自定义节点都位于 `ComfyUI/custom_nodes/` 目录下。
 
-推荐的文件结构：
+推荐的项目结构：
 ComfyUI/
-    custom_nodes/
-        ComfyUI-MyExtension/       <-- 你的项目文件夹
-            __init__.py              <-- 入口文件 (必须)
-            nodes/                   <-- 节点逻辑实现 (核心)
-                node.py
-            requirements.txt         <-- 依赖包列表 (可选，但推荐)
-            README.md                <-- 说明文档
-            web/                      <-- (可选) 存放前端 .js 扩展
-                my_script.js
+  custom_nodes/
+    ComfyUI_MyToolbox/          <-- 你的插件根目录
+      ├── __init__.py           <-- [核心] 入口文件，注册节点
+      ├── my_nodes.py           <-- [核心] Python 逻辑代码
+      ├── requirements.txt      <-- (可选) 依赖库，如 pandas, cv2
+      └── web/                  <-- (可选) 存放 JS 前端扩展
+          └── my_script.js
+
+> 提示：本地开发时，建议直接在该目录下创建文件夹。文件夹名称尽量独特，避免冲突。
 
 --------------------------------------------------------------------------------
 
-2. 核心：定义一个 Python 节点
+2. 经典标准：V1 节点开发 (The Classic Standard)
 ================================================================================
-一个标准的节点就是一个 Python 类 (Class)。该类必须包含以下 4 个核心属性和一个执行函数。
+这是目前 95% 的自定义节点使用的格式，兼容性最好。
 
-2.1 必要属性
-------------
-1. INPUT_TYPES (classmethod): 
-   定义输入端口。必须返回一个字典，包含 "required" (必须)、"optional" (可选) 和 "hidden" (隐藏) 字段。
-
-2. RETURN_TYPES (tuple): 
-   定义输出端口的数据类型。例如 `("IMAGE", "STRING")`。
-
-3. RETURN_NAMES (tuple, 可选): 
-   定义输出端口在 UI 上显示的名称。若省略，默认显示类型名称。
-
-4. FUNCTION (str): 
-   定义执行处理逻辑的函数名。例如 `"process_image"`。
-
-5. CATEGORY (str): 
-   定义节点在右键菜单中的分类路径。例如 `"MyNodes/Image"`。
-
-2.2 示例代码结构
+2.1 核心四大属性
 ----------------
-class MySimpleNode:
-    def __init__(self):
-        pass
+一个节点就是一个 Python Class，必须包含以下定义：
 
+class MyClassicNode:
+    # 1. 定义输入 (必须是 @classmethod)
     @classmethod
     def INPUT_TYPES(s):
         return {
             "required": {
-                "image": ("IMAGE",),  # 输入类型为图片
-                "int_val": ("INT", {
-                    "default": 10, 
-                    "min": 0, 
-                    "max": 100, 
-                    "step": 1,
+                "image": ("IMAGE",),                  # 接收图片流
+                "factor": ("FLOAT", {                 # 浮点数控件
+                    "default": 1.0, 
+                    "min": 0.0, "max": 10.0, 
+                    "step": 0.1, 
                     "display": "number" 
                 }),
+                "mode": (["fast", "accurate"],),      # 下拉菜单
+            },
+            "optional": {
+                "mask": ("MASK",),                    # 可选输入
             }
         }
 
-    RETURN_TYPES = ("IMAGE",)
-    FUNCTION = "do_work"
-    CATEGORY = "Example"
+    # 2. 定义输出类型
+    RETURN_TYPES = ("IMAGE", "STRING")
+    
+    # 3. 定义输出名称 (UI显示用)
+    RETURN_NAMES = ("processed_image", "info_text")
 
-    def do_work(self, image, int_val):
-        # 在这里写处理逻辑
-        return (image,)
+    # 4. 定义处理函数名
+    FUNCTION = "execute_logic"
+
+    # 5. 定义菜单分类
+    CATEGORY = "MyToolbox/Image"
+
+    # 6. 核心逻辑函数 (参数名必须与 INPUT_TYPES 中的 key 一致)
+    def execute_logic(self, image, factor, mode, mask=None):
+        # 逻辑处理...
+        return (image, "Done")
 
 --------------------------------------------------------------------------------
 
-3. 进阶：数据类型与处理逻辑
+3. 未来标准：V3 节点开发 (The Modern V3 Schema)
 ================================================================================
+ComfyUI 在 2025/2026 引入的新标准，提供更好的类型提示和向后兼容性。需要从 `comfy_api` 导入。
 
-3.1 常见数据类型 (Types)
-------------------------
-ComfyUI 使用特定的约定来传递数据：
-- IMAGE: 图片张量 (Tensor)。格式为 [Batch, Height, Width, Channel]。
-         数值范围通常是 0.0 到 1.0 (float32)。
-         注意：PyTorch 默认是 BCHW，但 ComfyUI 使用 BHWC。
-- MASK:  遮罩张量。格式为 [Batch, Height, Width]。范围 0.0 到 1.0。
-- LATENT: 潜空间数据 (字典格式，包含 "samples" 等键)。
-- MODEL / CLIP / VAE: 模型加载器传递的对象。
-- STRING / INT / FLOAT: 基础数据类型。
+3.1 新版写法特点
+----------------
+- 使用 `define_schema` 替代 INPUT_TYPES。
+- 使用 `comfy_api.latest.io` 类型对象。
+- 不需要手动写 NODE_CLASS_MAPPINGS，改用 entrypoint。
 
-3.2 控件配置 (Widget Config)
-----------------------------
-在 INPUT_TYPES 中可以配置 UI 控件的行为：
-- "INT": {"default": 1, "min": 0, "max": 10}
-- "FLOAT": {"default": 1.0, "min": 0.0, "max": 10.0, "step": 0.01}
-- "STRING": {"multiline": True}  <-- 多行文本框
-- ["option1", "option2"]:        <-- 下拉菜单 (List)
+3.2 代码示例
+----------------
+from comfy_api.latest import io, ComfyExtension
 
-3.3 执行流程与缓存 (Caching)
-----------------------------
-ComfyUI 默认会缓存节点执行结果。如果输入参数没有变化，`FUNCTION` 不会被重新调用。
-- 如果你的节点涉及随机数，需要添加输入 `"seed": ("INT", {"default": 0, "min": 0, "max": 0xffffffffffffffff})`。
-- 或者定义 `IS_CHANGED` 方法来强制刷新：
+class MyV3Node(io.ComfyNode):
     @classmethod
-    def IS_CHANGED(s, image, int_val):
-        return float("nan") # 总是重新执行
+    def define_schema(cls) -> io.Schema:
+        return io.Schema(
+            inputs={
+                "value": io.Int(default=10, min=0, max=100),
+                "model": io.Model.Input(),
+            },
+            outputs={
+                "model_out": io.Model.Output(),
+            },
+            category="MyToolbox/V3",
+            display_name="My Modern Node"
+        )
+
+    def execute(self, value, model):
+        # 逻辑处理
+        return {"model_out": model} # 返回字典
+
+# 注册入口 (替代 __init__.py 中的 MAPPINGS)
+async def comfy_entrypoint() -> ComfyExtension:
+    return ComfyExtension(nodes=[MyV3Node])
+
+> 注意：如果你是本地自用，目前 V1 标准依然是首选，因为文档和社区案例最丰富。V3 适合追求最新规范的开发者。
 
 --------------------------------------------------------------------------------
 
-4. 进阶：前端扩展 (Javascript)
+4. 前端扩展：Javascript 动态交互
 ================================================================================
-如果需要修改 UI 行为（例如：节点上的动态显示、隐藏部件、右键菜单增强），需要在 `js/` 目录下编写 Javascript 文件。
+如果你需要“根据选项A显示/隐藏选项B”的功能，必须编写 JS。
+ComfyUI 启动时会自动加载插件根目录下 `web/` 或 `js/` 文件夹内的 .js 文件。
 
-- 只要在节点根目录下创建 `js` 文件夹，ComfyUI 启动时会自动加载其中的 .js 文件。
-- 前端扩展通常通过 `app.registerExtension` 进行注册。
+示例：监听节点创建与组件变化 (web/my_extension.js)
+--------------------------------------------------
+import { app } from "../../scripts/app.js";
 
-示例 (js/my_script.js):
 app.registerExtension({
-    name: "My.Extension",
-    async nodeCreated(node, app) {
-        if (node.comfyClass === "MySimpleNode") {
-            // 对特定节点进行 UI 修改
+    name: "My.Local.Extension",
+    async nodeCreated(node) {
+        // 仅针对特定节点类
+        if (node.comfyClass === "MyClassicNode") {
+            
+            // 找到名为 "mode" 的控件
+            const modeWidget = node.widgets.find(w => w.name === "mode");
+            
+            // 劫持 callback 函数
+            const originalCallback = modeWidget.callback;
+            modeWidget.callback = function(value) {
+                // 执行原有逻辑
+                if (originalCallback) originalCallback.call(modeWidget, value);
+                
+                // 查找另一个控件 "factor"
+                const factorWidget = node.widgets.find(w => w.name === "factor");
+                
+                if (value === "fast") {
+                    factorWidget.type = "hidden"; // 隐藏
+                } else {
+                    factorWidget.type = "number"; // 显示
+                }
+                
+                // 强制重绘节点大小
+                node.setSize(node.computeSize());
+            };
         }
     }
 });
 
 --------------------------------------------------------------------------------
 
-5. 最佳实践与发布规范
+5. 调试与热重载技巧 (本地开发必备)
 ================================================================================
 
-5.1 注册节点 (__init__.py)
---------------------------
-在 `__init__.py` 中，你需要映射类名到 ComfyUI 的内部名称和显示名称。
+5.1 如何不用重启 ComfyUI 就更新代码？
+-------------------------------------
+Python 是加载后常驻内存的，默认修改 .py 文件**不会**立即生效。
+解决方案：
+1. **ComfyUI-LG_HotReload (推荐插件)**: 安装此插件后，保存 .py 文件会自动重载节点逻辑。
+2. **轻量级黑客法**: 在 Python 代码中使用 `importlib.reload` (不推荐，容易出错)。
+3. **前端 JS 更新**: 修改 .js 文件后，只需在浏览器按 `F5` 或 `Ctrl+R` 刷新页面即可，无需重启后台。
 
-from .my_node import MySimpleNode
+5.2 如何调试 (Debug)？
+----------------------
+1. **Print 大法**:
+   ComfyUI 的控制台窗口（那个黑框框）是你的好朋友。
+   `print(f"DEBUG: image shape is {image.shape}")`
+   
+2. **VS Code 断点调试**:
+   - 在 VS Code 中打开 ComfyUI 根目录。
+   - 创建 `.vscode/launch.json`，选择 "Python: Attach using Process ID"。
+   - 启动 ComfyUI。
+   - 在 VS Code 按 F5，选择 ComfyUI 的 python 进程 ID。
+   - 在你的节点代码打断点，点击 "Queue Prompt" 运行工作流，VS Code 会自动命中断点。
 
+--------------------------------------------------------------------------------
+
+6. 附录：完整代码模板 (Copy & Paste)
+================================================================================
+文件名: custom_nodes/ComfyUI_MyToolbox/__init__.py
+--------------------------------------------------------------------------------
+from .my_nodes import MyImageInvert
+
+# 注册类名与显示名称的映射
 NODE_CLASS_MAPPINGS = {
-    "MySimpleNode": MySimpleNode
+    "MyImageInvert": MyImageInvert
 }
 
+# 选填：自定义人类可读的名称
 NODE_DISPLAY_NAME_MAPPINGS = {
-    "MySimpleNode": "My First Custom Node"
+    "MyImageInvert": "My Invert Image (Local)"
 }
 
 __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
 
-5.2 命名规范
-------------
-- 类名：使用驼峰命名法 (CamelCase)。
-- CATEGORY：尽量使用你的项目名作为一级目录，避免污染根目录。例如 "ComfyUI-MyExtension/Utils" 而不是直接 "Utils"。
-- 输入参数名：尽量简短且具描述性。
 
-5.3 兼容性提示 (2026年更新)
----------------------------
-- 张量形状：始终检查输入图片的 shape。确保处理 Batch 维度。
-- 类型安全：如果输入可能是多种类型，可以使用 `*` 通配符 (ComfyUI 近期特性)，但在函数内部要做好类型检查。
-
---------------------------------------------------------------------------------
-
-6. 实战案例：图像反转节点 (Invert Image)
-================================================================================
-以下是一个完整的、可运行的 Python 文件示例。
-
-文件名: nodes.py
+文件名: custom_nodes/ComfyUI_MyToolbox/my_nodes.py
 --------------------------------------------------------------------------------
 import torch
 
-class InvertImageNode:
+class MyImageInvert:
     """
-    一个简单的节点，将输入图片颜色反转 (1 - pixel_value)。
-    支持 Batch 处理。
+    一个简单的图片反转节点示例，包含透明度处理。
     """
     def __init__(self):
         pass
@@ -190,9 +223,7 @@ class InvertImageNode:
     def INPUT_TYPES(s):
         return {
             "required": {
-                "image": ("IMAGE",),  # 输入: [B, H, W, C]
-            },
-            "optional": {
+                "image": ("IMAGE",),  # [B, H, W, C], range 0-1
                 "strength": ("FLOAT", {
                     "default": 1.0, 
                     "min": 0.0, 
@@ -203,38 +234,24 @@ class InvertImageNode:
         }
 
     RETURN_TYPES = ("IMAGE",)
-    RETURN_NAMES = ("inverted_image",)
     FUNCTION = "invert"
-    CATEGORY = "MyTutorial/Image"
+    CATEGORY = "MyToolbox"
 
     def invert(self, image, strength):
-        # image 是 PyTorch Tensor, 范围 0-1
-        # 逻辑: result = image * (1-strength) + (1-image) * strength
+        # image 是 PyTorch Tensor
+        # 逻辑: inverted = 1.0 - image
         
+        # 1. 反转颜色
         inverted = 1.0 - image
         
-        # 线性插值混合原图和反转图
+        # 2. 根据强度混合原图和反转图
+        # result = original * (1-strength) + inverted * strength
         result = image * (1.0 - strength) + inverted * strength
         
-        # 确保范围在 0-1 之间 (虽然数学上不会越界，但这是好习惯)
+        # 3. 边界限制 (虽然数学上安全，但保险起见)
         result = torch.clamp(result, 0.0, 1.0)
         
         return (result,)
-
-# ------------------------------------------------------------------------------
-# 文件名: __init__.py
-# ------------------------------------------------------------------------------
-# from .nodes import InvertImageNode
-#
-# NODE_CLASS_MAPPINGS = {
-#     "InvertImageNode": InvertImageNode
-# }
-#
-# NODE_DISPLAY_NAME_MAPPINGS = {
-#     "InvertImageNode": "Simple Image Invert"
-# }
-#
-# __all__ = ["NODE_CLASS_MAPPINGS", "NODE_DISPLAY_NAME_MAPPINGS"]
 
 ================================================================================
 文档结束
