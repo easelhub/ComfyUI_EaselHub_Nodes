@@ -1,1 +1,3 @@
 根据开发文档 @/comfyui_dev.txt 、__init__.py文件进行插件开发，等我提出需求
+
+根据开发文档 @/comfyui_dev.txt 重构本项目，以及所需依赖。
